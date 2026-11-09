@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌡 Termômetro Q-Day</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0b0e14; --card: #151a24; --card-hover: #1c2330; --border: #2a3241;
+    --text: #e6edf3; --text2: #8b949e;
+    --green: #2ea043; --green-bg: #0d2818;
+    --red: #da3633; --red-bg: #2d0f0f;
+    --neutral: #8b949e; --neutral-bg: #1c2330;
+    --blue: #1e90ff;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    background-color: #030308;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(100, 40, 180, 0.3) 0%, transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(20, 80, 200, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(200, 50, 100, 0.05) 0%, transparent 60%);
+    background-attachment: fixed;
+    color: var(--text); font-family: var(--font);
+    min-height: 100vh; padding: 24px 16px;
+    display: flex; flex-direction: column; align-items: center;
+    position: relative; overflow-x: hidden;
+  }
+
+  #space-bg {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0; overflow: hidden;
+  }
+
+  .sun-wrapper { position: absolute; top: -100px; right: -80px; width: 350px; height: 350px; opacity: 0.85; }
+  .sun-core {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, #ffffff 10%, #ffeb3b 40%, #ff9800 80%, transparent 100%);
+    border-radius: 50%;
+    box-shadow: 0 0 40px 10px rgba(255, 152, 0, 0.8), 0 0 100px 30px rgba(255, 87, 34, 0.4), 0 0 200px 80px rgba(255, 193, 7, 0.2);
+    animation: sunPulse 4s ease-in-out infinite;
+  }
+  .sun-corona {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 250px; height: 250px; border-radius: 50%;
+    border: 2px solid rgba(255, 193, 7, 0.2);
+    background: radial-gradient(circle, transparent 40%, rgba(255, 152, 0, 0.05) 70%, transparent 100%);
+    animation: coronaSpin 15s linear infinite;
+  }
+  .sun-rays {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 300px; height: 300px;
+    background: repeating-conic-gradient(from 0deg, transparent 0deg, transparent 5deg, rgba(255, 193, 7, 0.1) 5deg, rgba(255, 193, 7, 0.1) 10deg);
+    border-radius: 50%; animation: raysSpin 30s linear infinite;
+    mask-image: radial-gradient(circle, transparent 20%, black 70%);
+    -webkit-mask-image: radial-gradient(circle, transparent 20%, black 70%);
+  }
+  @keyframes sunPulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; } 50% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; } }
+  @keyframes coronaSpin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+  @keyframes raysSpin { 100% { transform: rotate(-360deg); } }
+
+  .big-star { position: absolute; background: #fff; border-radius: 50%; box-shadow: 0 0 10px 2px rgba(255,255,255,0.8); }
+  .big-star::before, .big-star::after { content: ''; position: absolute; top: 50%; left: 50%; background: linear-gradient(to right, transparent, rgba(255,255,255,0.6), transparent); transform: translate(-50%, -50%); }
+  .big-star::before { width: 300%; height: 2px; }
+  .big-star::after { width: 2px; height: 300%; background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.6), transparent); }
+  .big-star.pulse-slow { animation: starPulse 4s ease-in-out infinite; }
+  .big-star.pulse-fast { animation: starPulse 2s ease-in-out infinite; }
+  .big-star.blue-glow { box-shadow: 0 0 15px 3px rgba(100, 200, 255, 0.9); }
+  .big-star.blue-glow::before, .big-star.blue-glow::after { background: linear-gradient(to right, transparent, rgba(100, 200, 255, 0.8), transparent); }
+  .big-star.blue-glow::after { background: linear-gradient(to bottom, transparent, rgba(100, 200, 255, 0.8), transparent); }
+  .big-star.pink-glow { box-shadow: 0 0 15px 3px rgba(255, 100, 200, 0.9); }
+  .big-star.pink-glow::before, .big-star.pink-glow::after { background: linear-gradient(to right, transparent, rgba(255, 100, 200, 0.8), transparent); }
+  .big-star.pink-glow::after { background: linear-gradient(to bottom, transparent, rgba(255, 100, 200, 0.8), transparent); }
+  @keyframes starPulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.5); opacity: 1; } }
+
+  .small-star { position: absolute; background: #fff; border-radius: 50%; animation: twinkle linear infinite; }
+  @keyframes twinkle { 0%, 100% { opacity: 0.1; transform: scale(0.8); } 50% { opacity: 0.9; transform: scale(1.1); } }
+
+  .header, .featured, .grid, .detail, .oldest-section { position: relative; z-index: 1; }
+
+  .header { text-align: center; margin-bottom: 40px; width: 100%; max-width: 1200px; display: flex; flex-direction: column; align-items: center; position: relative; }
+  .header-title-wrap { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+
+  .satoshi-qubit {
+    position: relative; width: 90px; height: 90px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    filter: drop-shadow(0 0 18px rgba(255, 179, 71, 0.6)) drop-shadow(0 0 35px rgba(188, 140, 255, 0.35));
+  }
+  .satoshi-qubit::before {
+    content: ''; position: absolute; inset: -18px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 179, 71, 0.25), rgba(188, 140, 255, 0.15) 45%, transparent 70%);
+    animation: satoshiAura 3.5s ease-in-out infinite; z-index: 0;
+  }
+  @keyframes satoshiAura { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.12); opacity: 1; } }
+  .satoshi-qubit svg { position: relative; z-index: 1; width: 100%; height: 100%; animation: satoshiFloat 5s ease-in-out infinite; }
+  @keyframes satoshiFloat { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
+  .satoshi-orbit { position: absolute; inset: 0; z-index: 2; pointer-events: none; animation: satoshiOrbit 12s linear infinite; }
+  @keyframes satoshiOrbit { 100% { transform: rotate(360deg); } }
+  .satoshi-orbit::before, .satoshi-orbit::after { content: ''; position: absolute; width: 8px; height: 8px; border-radius: 50%; top: 50%; left: 50%; }
+  .satoshi-orbit::before { background: radial-gradient(circle, #fff 0%, #ffb347 50%, transparent 80%); box-shadow: 0 0 10px 3px rgba(255, 179, 71, 0.9); transform: translate(-50%, -50%) translateX(46px); }
+  .satoshi-orbit::after { background: radial-gradient(circle, #fff 0%, #bc8cff 50%, transparent 80%); box-shadow: 0 0 10px 3px rgba(188, 140, 255, 0.9); transform: translate(-50%, -50%) translateX(-46px); }
+
+  .header h1 {
+    font-size: 2.8rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
+    background: linear-gradient(135deg, #58a6ff 0%, #bc8cff 50%, #ff8a65 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    animation: gradientShift 4s linear infinite;
+    filter: drop-shadow(0 0 10px rgba(88, 166, 255, 0.5)) drop-shadow(0 0 20px rgba(188, 140, 255, 0.3));
+  }
+  @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+  .header-title-accent {
+    width: 80px; height: 4px;
+    background: linear-gradient(90deg, transparent, #58a6ff, #bc8cff, transparent);
+    border-radius: 2px; margin-bottom: 16px; box-shadow: 0 0 10px rgba(88, 166, 255, 0.8);
+  }
+  .header p { color: var(--text2); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
+
+  @media (max-width: 600px) {
+    .header-title-wrap { gap: 10px; }
+    .satoshi-qubit { width: 64px; height: 64px; }
+    .satoshi-orbit::before { transform: translate(-50%, -50%) translateX(32px); }
+    .satoshi-orbit::after { transform: translate(-50%, -50%) translateX(-32px); }
+    .header h1 { font-size: 1.7rem; }
+  }
+
+  .header-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 18px 0 14px; }
+
+  .info-btn, .contact-btn, .qday-info-btn, .lang-btn, .bolha-btn, .galaxia-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 18px; font-family: inherit; font-size: 0.82rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px;
+    background: rgba(21, 26, 36, 0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-radius: 10px; cursor: pointer; z-index: 2; overflow: hidden;
+    transition: transform .2s, border-color .2s, box-shadow .2s, color .2s;
+  }
+  .info-btn { color: #58a6ff; border: 1px solid rgba(30, 144, 255, 0.5); animation: infoPulse 3s ease-in-out infinite; }
+  .contact-btn { color: #2ea043; border: 1px solid rgba(46, 160, 67, 0.5); animation: contactPulse 3s ease-in-out infinite; }
+  .qday-info-btn { color: #bc8cff; border: 1px solid rgba(188, 140, 255, 0.5); animation: qdayInfoPulse 3s ease-in-out infinite; }
+  .lang-btn { color: #ffb347; border: 1px solid rgba(255, 179, 71, 0.5); animation: langPulse 3s ease-in-out infinite; }
+  .bolha-btn { color: #00d9ff; border: 1px solid rgba(0, 217, 255, 0.5); animation: bolhaPulse 3s ease-in-out infinite; }
+  .galaxia-btn { color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.5); animation: galaxiaPulse 3s ease-in-out infinite; }
+
+  .info-btn::before, .contact-btn::before, .qday-info-btn::before, .lang-btn::before, .bolha-btn::before, .galaxia-btn::before {
+    content: ''; position: absolute; inset: 0;
+    transform: translateX(-100%); transition: transform .6s ease; pointer-events: none;
+  }
+  .info-btn::before { background: linear-gradient(120deg, transparent 30%, rgba(100, 200, 255, 0.2) 50%, transparent 70%); }
+  .contact-btn::before { background: linear-gradient(120deg, transparent 30%, rgba(100, 255, 150, 0.2) 50%, transparent 70%); }
+  .qday-info-btn::before { background: linear-gradient(120deg, transparent 30%, rgba(200, 150, 255, 0.25) 50%, transparent 70%); }
+  .lang-btn::before { background: linear-gradient(120deg, transparent 30%, rgba(255, 220, 150, 0.25) 50%, transparent 70%); }
+  .bolha-btn::before { background: linear-gradient(120deg, transparent 30%, rgba(150, 230, 255, 0.3) 50%, transparent 70%); }
+  .galaxia-btn::before { background: linear-gradient(120deg, transparent 30%, rgba(220, 180, 255, 0.35) 50%, transparent 70%); }
+
+  .info-btn:hover { transform: translateY(-2px); color: #00bfff; border-color: #00bfff; box-shadow: 0 0 18px rgba(30, 144, 255, 0.6), inset 0 0 12px rgba(30, 144, 255, 0.1); }
+  .contact-btn:hover { transform: translateY(-2px); color: #3fb950; border-color: #3fb950; box-shadow: 0 0 18px rgba(46, 160, 67, 0.6), inset 0 0 12px rgba(46, 160, 67, 0.1); }
+  .qday-info-btn:hover { transform: translateY(-2px); color: #d2a8ff; border-color: #d2a8ff; box-shadow: 0 0 18px rgba(188, 140, 255, 0.6), inset 0 0 12px rgba(188, 140, 255, 0.12); }
+  .lang-btn:hover { transform: translateY(-2px); color: #ffd700; border-color: #ffd700; box-shadow: 0 0 18px rgba(255, 179, 71, 0.6), inset 0 0 12px rgba(255, 179, 71, 0.12); }
+  .bolha-btn:hover { transform: translateY(-2px); color: #7ceaff; border-color: #7ceaff; box-shadow: 0 0 18px rgba(0, 217, 255, 0.6), inset 0 0 12px rgba(0, 217, 255, 0.15); }
+  .galaxia-btn:hover { transform: translateY(-2px); color: #d8b4fe; border-color: #d8b4fe; box-shadow: 0 0 18px rgba(192, 132, 252, 0.7), inset 0 0 12px rgba(192, 132, 252, 0.2); }
+  .info-btn:hover::before, .contact-btn:hover::before, .qday-info-btn:hover::before, .lang-btn:hover::before, .bolha-btn:hover::before, .galaxia-btn:hover::before { transform: translateX(100%); }
+  .info-btn:focus-visible, .contact-btn:focus-visible, .qday-info-btn:focus-visible, .lang-btn:focus-visible, .bolha-btn:focus-visible, .galaxia-btn:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+  @keyframes infoPulse { 0%, 100% { box-shadow: 0 0 8px rgba(30, 144, 255, 0.25); } 50% { box-shadow: 0 0 18px rgba(30, 144, 255, 0.55); } }
+  @keyframes contactPulse { 0%, 100% { box-shadow: 0 0 8px rgba(46, 160, 67, 0.25); } 50% { box-shadow: 0 0 18px rgba(46, 160, 67, 0.55); } }
+  @keyframes qdayInfoPulse { 0%, 100% { box-shadow: 0 0 8px rgba(188, 140, 255, 0.25); } 50% { box-shadow: 0 0 18px rgba(188, 140, 255, 0.6); } }
+  @keyframes langPulse { 0%, 100% { box-shadow: 0 0 8px rgba(255, 179, 71, 0.25); } 50% { box-shadow: 0 0 18px rgba(255, 179, 71, 0.6); } }
+  @keyframes bolhaPulse { 0%, 100% { box-shadow: 0 0 8px rgba(0, 217, 255, 0.25); } 50% { box-shadow: 0 0 20px rgba(0, 217, 255, 0.7), 0 0 40px rgba(0, 217, 255, 0.3); } }
+  @keyframes galaxiaPulse { 0%, 100% { box-shadow: 0 0 8px rgba(192, 132, 252, 0.3); } 50% { box-shadow: 0 0 22px rgba(192, 132, 252, 0.8), 0 0 45px rgba(192, 132, 252, 0.4); } }
+
+  /* ============ VIEW BOLHAS ============ */
+  .bolha-header-accent {
+    width: 80px; height: 4px;
+    background: linear-gradient(90deg, transparent, #00d9ff, #58a6ff, transparent);
+    border-radius: 2px; margin-bottom: 16px; box-shadow: 0 0 10px rgba(0, 217, 255, 0.8);
+  }
+  .bolha-title {
+    font-size: 2.4rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
+    background: linear-gradient(135deg, #00d9ff 0%, #58a6ff 50%, #bc8cff 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    animation: gradientShift 4s linear infinite;
+    filter: drop-shadow(0 0 10px rgba(0, 217, 255, 0.5)) drop-shadow(0 0 20px rgba(88, 166, 255, 0.3));
+  }
+  .bolha-back-wrap { display: flex; justify-content: center; margin-bottom: 20px; }
+  .bolha-back-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; font-family: inherit; font-size: 0.85rem; font-weight: 700;
+    background: rgba(21, 26, 36, 0.8); color: #00d9ff;
+    border: 1px solid rgba(0, 217, 255, 0.5); border-radius: 10px;
+    cursor: pointer; transition: transform .2s, border-color .2s, box-shadow .2s;
+  }
+  .bolha-back-btn:hover { transform: translateY(-2px); border-color: #00d9ff; box-shadow: 0 0 18px rgba(0, 217, 255, 0.5); }
+  .bolha-legend {
+    display: flex; gap: 18px; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 20px; font-size: 0.75rem; color: var(--text2);
+  }
+  .bolha-legend-item { display: flex; align-items: center; gap: 6px; }
+  .bolha-legend-dot { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+  .bolha-legend-dot.green { background: #2ea043; color: #2ea043; }
+  .bolha-legend-dot.red { background: #da3633; color: #da3633; }
+  .bolha-legend-dot.gray { background: #8b949e; color: #8b949e; }
+
+  .bolha-container {
+    position: relative; width: 100%; max-width: 1200px;
+    height: 70vh; min-height: 520px; max-height: 800px;
+    background: radial-gradient(circle at 50% 50%, rgba(0, 217, 255, 0.05), transparent 70%);
+    border: 1px solid rgba(0, 217, 255, 0.2); border-radius: 20px; overflow: hidden;
+    box-shadow: inset 0 0 60px rgba(0, 217, 255, 0.08), 0 0 40px rgba(0, 217, 255, 0.15);
+  }
+  .bolha-container::before {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 65% 45%, rgba(0,217,255,0.5), transparent),
+      radial-gradient(1.5px 1.5px at 35% 75%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 85% 15%, rgba(88,166,255,0.5), transparent),
+      radial-gradient(1px 1px at 45% 55%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 75% 85%, rgba(188,140,255,0.4), transparent);
+    pointer-events: none; opacity: 0.7;
+  }
+
+  .bolha-item {
+    position: absolute; border-radius: 50%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform 0.15s ease-out, box-shadow 0.3s ease;
+    text-align: center; padding: 6px; overflow: hidden; user-select: none; will-change: transform;
+  }
+  .bolha-item::before {
+    content: ''; position: absolute; top: 15%; left: 20%; width: 28%; height: 22%;
+    border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.7), transparent 70%);
+    pointer-events: none; opacity: 0.8;
+  }
+  .bolha-item:hover { z-index: 100; box-shadow: 0 0 30px currentColor, 0 0 60px currentColor; }
+  .bolha-item.buyer {
+    background: radial-gradient(circle at 35% 30%, rgba(100, 255, 150, 0.9), rgba(46, 160, 67, 0.75) 40%, rgba(13, 60, 30, 0.9) 100%);
+    color: #56d364; border: 2px solid rgba(86, 211, 100, 0.7);
+    box-shadow: 0 0 20px rgba(46, 160, 67, 0.5), inset 0 0 20px rgba(86, 211, 100, 0.15);
+  }
+  .bolha-item.seller {
+    background: radial-gradient(circle at 35% 30%, rgba(255, 130, 130, 0.9), rgba(218, 54, 51, 0.75) 40%, rgba(60, 13, 13, 0.9) 100%);
+    color: #ff6b6b; border: 2px solid rgba(255, 107, 107, 0.7);
+    box-shadow: 0 0 20px rgba(218, 54, 51, 0.5), inset 0 0 20px rgba(255, 107, 107, 0.15);
+  }
+  .bolha-item.neutral {
+    background: radial-gradient(circle at 35% 30%, rgba(180, 190, 200, 0.7), rgba(139, 148, 158, 0.6) 40%, rgba(28, 35, 48, 0.9) 100%);
+    color: #b0b8c0; border: 2px solid rgba(176, 184, 192, 0.5);
+    box-shadow: 0 0 15px rgba(139, 148, 158, 0.35), inset 0 0 15px rgba(176, 184, 192, 0.1);
+  }
+
+  .bolha-logo {
+    width: 38%; height: 38%; max-width: 48px; max-height: 48px;
+    border-radius: 50%; object-fit: contain; margin-bottom: 4px; pointer-events: none;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); position: relative; z-index: 2;
+  }
+  .bolha-name {
+    font-size: 0.7rem; font-weight: 800; color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 95%;
+    position: relative; z-index: 2; pointer-events: none;
+  }
+  .bolha-symbol {
+    font-size: 0.58rem; font-weight: 700; color: rgba(255,255,255,0.8);
+    text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    position: relative; z-index: 2; pointer-events: none;
+  }
+  .bolha-item.tiny .bolha-name, .bolha-item.tiny .bolha-symbol { display: none; }
+  .bolha-item.tiny .bolha-logo { width: 50%; height: 50%; margin: 0; }
+  .bolha-item.small .bolha-symbol { display: none; }
+
+  .bolha-item.exploding { animation: bolhaExplode 0.6s ease-out forwards !important; pointer-events: none; }
+  @keyframes bolhaExplode {
+    0% { transform: scale(1); opacity: 1; }
+    40% { transform: scale(1.6); opacity: 1; filter: brightness(2); }
+    100% { transform: scale(2.5); opacity: 0; filter: brightness(3) blur(4px); }
+  }
+  .bolha-particle {
+    position: absolute; width: 6px; height: 6px; border-radius: 50%;
+    pointer-events: none; z-index: 200; animation: particleFly 0.8s ease-out forwards;
+  }
+  @keyframes particleFly {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+  }
+  .bolha-item.respawning { animation: bolhaRespawn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important; }
+  @keyframes bolhaRespawn {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .bolha-empty {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px; color: var(--text2); font-size: 0.9rem; text-align: center;
+  }
+  .bolha-empty .spinner { border-top-color: #00d9ff; }
+
+  .bolha-tooltip {
+    position: fixed; background: rgba(11, 14, 20, 0.95);
+    border: 1px solid rgba(0, 217, 255, 0.5); border-radius: 10px;
+    padding: 10px 14px; font-size: 0.78rem; color: var(--text);
+    pointer-events: none; z-index: 1000;
+    box-shadow: 0 0 20px rgba(0, 217, 255, 0.4);
+    opacity: 0; transform: translateY(5px);
+    transition: opacity 0.15s, transform 0.15s;
+    white-space: nowrap;
+  }
+  .bolha-tooltip.visible { opacity: 1; transform: translateY(0); }
+  .bolha-tooltip-name { font-weight: 800; color: #00d9ff; margin-bottom: 4px; font-size: 0.85rem; }
+  .bolha-tooltip-row { display: flex; justify-content: space-between; gap: 14px; color: #c9d1d9; margin-top: 2px; }
+  .bolha-tooltip-row strong { color: #fff; }
+  .bolha-tooltip-status { margin-top: 6px; padding: 3px 8px; border-radius: 5px; font-size: 0.65rem; font-weight: 800; text-align: center; }
+  .bolha-tooltip-status.buyer { background: var(--green-bg); color: var(--green); }
+  .bolha-tooltip-status.seller { background: var(--red-bg); color: var(--red); }
+  .bolha-tooltip-status.neutral { background: var(--neutral-bg); color: var(--neutral); }
+
+  @media (max-width: 600px) {
+    .bolha-container { height: 65vh; min-height: 400px; border-radius: 14px; }
+    .bolha-title { font-size: 1.7rem; }
+    .bolha-name { font-size: 0.6rem; }
+    .bolha-symbol { font-size: 0.52rem; }
+  }
+
+  /* ============ VIEW GALÁXIA ============ */
+  .galaxia-header-accent {
+    width: 80px; height: 4px;
+    background: linear-gradient(90deg, transparent, #c084fc, #8b5cf6, #c084fc, transparent);
+    border-radius: 2px; margin-bottom: 16px; box-shadow: 0 0 12px rgba(192, 132, 252, 0.9);
+  }
+  .galaxia-title {
+    font-size: 2.6rem; font-weight: 900; letter-spacing: 3px; text-transform: uppercase;
+    background: linear-gradient(135deg, #c084fc 0%, #8b5cf6 30%, #6366f1 60%, #58a6ff 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    animation: gradientShift 5s linear infinite;
+    filter: drop-shadow(0 0 12px rgba(192, 132, 252, 0.6)) drop-shadow(0 0 25px rgba(139, 92, 246, 0.4));
+  }
+  .galaxia-back-wrap { display: flex; justify-content: center; margin-bottom: 20px; }
+  .galaxia-back-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; font-family: inherit; font-size: 0.85rem; font-weight: 700;
+    background: rgba(21, 26, 36, 0.8); color: #c084fc;
+    border: 1px solid rgba(192, 132, 252, 0.5); border-radius: 10px;
+    cursor: pointer; transition: transform .2s, border-color .2s, box-shadow .2s;
+  }
+  .galaxia-back-btn:hover { transform: translateY(-2px); border-color: #c084fc; box-shadow: 0 0 18px rgba(192, 132, 252, 0.6); }
+  .galaxia-legend {
+    display: flex; gap: 18px; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 16px; font-size: 0.75rem; color: var(--text2);
+  }
+  .galaxia-legend-item { display: flex; align-items: center; gap: 6px; }
+  .galaxia-legend-dot { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+  .galaxia-legend-dot.sun { background: radial-gradient(circle, #fff, #ffd700, #ff8c00); color: #ffb347; }
+  .galaxia-legend-dot.giant { background: radial-gradient(circle, #ff9a3c, #ff4500); color: #ff8c00; }
+  .galaxia-legend-dot.planet { background: radial-gradient(circle, #58a6ff, #1e40af); color: #58a6ff; }
+  .galaxia-legend-dot.moon { background: radial-gradient(circle, #bc8cff, #6d28d9); color: #bc8cff; }
+
+  .galaxia-container {
+    position: relative; width: 100%; max-width: 1300px;
+    height: 82vh; min-height: 620px; max-height: 920px;
+    background:
+      radial-gradient(ellipse at 30% 40%, rgba(139, 92, 246, 0.15), transparent 50%),
+      radial-gradient(ellipse at 70% 60%, rgba(99, 102, 241, 0.12), transparent 55%),
+      radial-gradient(ellipse at 50% 50%, rgba(30, 20, 60, 0.6), rgba(5, 3, 15, 0.98) 80%);
+    border: 1px solid rgba(192, 132, 252, 0.3); border-radius: 20px;
+    overflow: hidden;
+    box-shadow: inset 0 0 120px rgba(139, 92, 246, 0.15), 0 0 60px rgba(139, 92, 246, 0.2);
+  }
+
+  .galaxia-stars-bg {
+    position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.7), transparent),
+      radial-gradient(1px 1px at 25% 35%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1.5px 1.5px at 40% 20%, rgba(255,255,255,0.8), transparent),
+      radial-gradient(1px 1px at 55% 45%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(2px 2px at 75% 30%, rgba(200,200,255,0.7), transparent),
+      radial-gradient(1px 1px at 85% 60%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1.5px 1.5px at 20% 70%, rgba(255,255,255,0.7), transparent),
+      radial-gradient(1px 1px at 60% 80%, rgba(200,220,255,0.6), transparent),
+      radial-gradient(1px 1px at 90% 85%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1.5px 1.5px at 45% 65%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1px 1px at 30% 90%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 70% 10%, rgba(255,255,255,0.6), transparent);
+    animation: bgStarTwinkle 6s ease-in-out infinite;
+  }
+  @keyframes bgStarTwinkle {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.02); }
+  }
+
+  .galaxia-nebula {
+    position: absolute; pointer-events: none; z-index: 0;
+    border-radius: 50%; filter: blur(80px);
+    opacity: 0.5;
+  }
+  .galaxia-nebula.n1 { width: 400px; height: 300px; top: 10%; left: 10%; background: radial-gradient(ellipse, rgba(139, 92, 246, 0.5), rgba(139, 92, 246, 0) 70%); animation: nebulaDrift 20s ease-in-out infinite; }
+  .galaxia-nebula.n2 { width: 500px; height: 350px; bottom: 5%; right: 5%; background: radial-gradient(ellipse, rgba(236, 72, 153, 0.35), rgba(236, 72, 153, 0) 70%); animation: nebulaDrift 25s ease-in-out infinite reverse; }
+  .galaxia-nebula.n3 { width: 350px; height: 250px; top: 40%; left: 60%; background: radial-gradient(ellipse, rgba(99, 102, 241, 0.4), rgba(99, 102, 241, 0) 70%); animation: nebulaDrift 18s ease-in-out infinite; }
+  @keyframes nebulaDrift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(30px, -20px) scale(1.15); }
+  }
+
+  .galaxia-sun {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .galaxia-sun::before {
+    content: ''; position: absolute; inset: -30%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 200, 60, 0.5), rgba(255, 140, 0, 0.2) 40%, transparent 70%);
+    animation: sunHalo 4s ease-in-out infinite;
+    z-index: -1;
+    pointer-events: none;
+  }
+  .galaxia-sun::after {
+    content: ''; position: absolute; inset: -15%;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent, rgba(255, 220, 100, 0.4), transparent, rgba(255, 180, 60, 0.3), transparent, rgba(255, 220, 100, 0.4), transparent);
+    animation: sunRays 20s linear infinite;
+    opacity: 0.6;
+    z-index: -1;
+    pointer-events: none;
+  }
+  @keyframes sunHalo {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.15); opacity: 1; }
+  }
+  @keyframes sunRays { 100% { transform: rotate(360deg); } }
+  .galaxia-sun .galaxia-sun-core {
+    position: relative;
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #ffffff 0%, #fff3a0 15%, #ffd700 35%, #ff9800 60%, #ff5722 85%, #b71c1c 100%);
+    box-shadow:
+      0 0 40px 10px rgba(255, 200, 60, 0.95),
+      0 0 80px 25px rgba(255, 140, 0, 0.7),
+      0 0 140px 50px rgba(255, 80, 20, 0.4);
+    display: flex; align-items: center; justify-content: center;
+    animation: sunCorePulse 3s ease-in-out infinite;
+  }
+  @keyframes sunCorePulse {
+    0%, 100% { box-shadow: 0 0 40px 10px rgba(255, 200, 60, 0.95), 0 0 80px 25px rgba(255, 140, 0, 0.7), 0 0 140px 50px rgba(255, 80, 20, 0.4); }
+    50% { box-shadow: 0 0 60px 18px rgba(255, 220, 80, 1), 0 0 110px 40px rgba(255, 160, 20, 0.85), 0 0 180px 70px rgba(255, 100, 30, 0.5); }
+  }
+  .galaxia-sun-logo {
+    width: 55%; height: 55%;
+    border-radius: 50%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px rgba(0,0,0,0.8));
+    position: relative; z-index: 2;
+    pointer-events: none;
+  }
+  .galaxia-sun-label {
+    position: absolute; top: calc(100% + 12px); left: 50%; transform: translateX(-50%);
+    padding: 5px 16px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(255, 200, 60, 0.3), rgba(255, 140, 0, 0.25));
+    border: 1.5px solid rgba(255, 200, 60, 0.9);
+    color: #fff8d0; font-size: 0.85rem; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    white-space: nowrap; pointer-events: none;
+    box-shadow: 0 0 20px rgba(255, 200, 60, 0.8), 0 0 40px rgba(255, 140, 0, 0.4);
+    text-shadow: 0 0 10px rgba(255, 200, 60, 0.9);
+  }
+  .galaxia-sun:hover { z-index: 50; }
+  .galaxia-sun:hover .galaxia-sun-core { filter: brightness(1.15); }
+
+  .galaxia-orbit {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%; border: 1px dashed;
+    pointer-events: none; z-index: 1;
+  }
+
+  .galaxia-body {
+    position: absolute; border-radius: 50%;
+    cursor: pointer; z-index: 5;
+    display: flex; align-items: center; justify-content: center;
+    transition: box-shadow 0.3s ease, filter 0.3s ease;
+    will-change: transform;
+    pointer-events: auto;
+  }
+  .galaxia-body::after {
+    content: ''; position: absolute; inset: -6px;
+    border-radius: 50%; opacity: 0;
+    background: radial-gradient(circle, currentColor, transparent 70%);
+    z-index: -1;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  .galaxia-body:hover {
+    z-index: 100;
+    filter: brightness(1.4);
+    box-shadow: 0 0 40px 10px currentColor, 0 0 80px 20px currentColor;
+  }
+  .galaxia-body:hover::after { opacity: 0.6; }
+
+  .galaxia-body.giant {
+    background: radial-gradient(circle at 35% 30%, #ffedd5 0%, #fed7aa 20%, #fdba74 45%, #f97316 75%, #c2410c 100%);
+    border: 2px solid rgba(251, 146, 60, 0.9);
+    box-shadow: 0 0 25px 6px rgba(249, 115, 22, 0.7), 0 0 50px 15px rgba(234, 88, 12, 0.4);
+    color: #fdba74;
+  }
+  .galaxia-body.planet {
+    background: radial-gradient(circle at 35% 30%, #dbeafe 0%, #93c5fd 25%, #3b82f6 55%, #1e40af 85%, #1e3a8a 100%);
+    border: 1.5px solid rgba(96, 165, 250, 0.8);
+    box-shadow: 0 0 20px 4px rgba(59, 130, 246, 0.6), 0 0 40px 10px rgba(37, 99, 235, 0.3);
+    color: #93c5fd;
+  }
+  .galaxia-body.moon {
+    background: radial-gradient(circle at 35% 30%, #ede9fe 0%, #d8b4fe 25%, #a78bfa 55%, #7c3aed 85%, #5b21b6 100%);
+    border: 1px solid rgba(196, 181, 253, 0.7);
+    box-shadow: 0 0 15px 3px rgba(167, 139, 250, 0.5), 0 0 30px 8px rgba(124, 58, 237, 0.25);
+    color: #c4b5fd;
+  }
+
+  .galaxia-body .galaxia-logo {
+    width: 55%; height: 55%; border-radius: 50%; object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8));
+    pointer-events: none; z-index: 2;
+  }
+  .galaxia-body .galaxia-label {
+    position: absolute; top: calc(100% + 5px); left: 50%; transform: translateX(-50%);
+    padding: 2px 8px; border-radius: 10px;
+    background: rgba(11, 14, 20, 0.92);
+    border: 1px solid currentColor;
+    color: #e9d5ff; font-size: 0.58rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    white-space: nowrap; pointer-events: none; z-index: 3;
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .galaxia-body:hover .galaxia-label { opacity: 1; }
+
+  .galaxia-tooltip {
+    position: fixed;
+    background: linear-gradient(135deg, rgba(21, 26, 36, 0.98), rgba(30, 20, 60, 0.98));
+    border: 1px solid rgba(192, 132, 252, 0.7);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 0.8rem;
+    color: var(--text);
+    pointer-events: none;
+    z-index: 2000;
+    box-shadow: 0 0 30px rgba(192, 132, 252, 0.5), 0 10px 40px rgba(0,0,0,0.7);
+    opacity: 0; transform: translateY(5px);
+    transition: opacity 0.15s, transform 0.15s;
+    white-space: nowrap;
+    min-width: 200px;
+  }
+  .galaxia-tooltip.visible { opacity: 1; transform: translateY(0); }
+  .galaxia-tooltip-name { font-weight: 800; color: #e9d5ff; margin-bottom: 6px; font-size: 0.92rem; display: flex; align-items: center; gap: 6px; }
+  .galaxia-tooltip-name .badge { font-size: 0.55rem; padding: 2px 6px; border-radius: 4px; background: rgba(192, 132, 252, 0.25); color: #d8b4fe; text-transform: uppercase; }
+  .galaxia-tooltip-name .sun-badge { font-size: 0.55rem; padding: 2px 6px; border-radius: 4px; background: linear-gradient(135deg, rgba(255,200,60,0.35), rgba(255,140,0,0.3)); color: #ffe680; text-transform: uppercase; font-weight: 900; box-shadow: 0 0 8px rgba(255,200,60,0.5); }
+  .galaxia-tooltip-row { display: flex; justify-content: space-between; gap: 14px; color: #c9d1d9; margin-top: 3px; }
+  .galaxia-tooltip-row strong { color: #fff; font-variant-numeric: tabular-nums; }
+  .galaxia-tooltip-status { margin-top: 8px; padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: 800; text-align: center; }
+  .galaxia-tooltip-status.buyer { background: var(--green-bg); color: var(--green); }
+  .galaxia-tooltip-status.seller { background: var(--red-bg); color: var(--red); }
+  .galaxia-tooltip-status.neutral { background: var(--neutral-bg); color: var(--neutral); }
+
+  .galaxia-empty {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px; color: var(--text2); font-size: 0.9rem; text-align: center;
+    z-index: 5;
+  }
+  .galaxia-empty .spinner { border-top-color: #c084fc; }
+
+  @media (max-width: 900px) {
+    .galaxia-container { height: 76vh; min-height: 540px; }
+    .galaxia-title { font-size: 2rem; }
+  }
+  @media (max-width: 600px) {
+    .galaxia-container { height: 72vh; min-height: 460px; border-radius: 14px; }
+    .galaxia-title { font-size: 1.7rem; letter-spacing: 2px; }
+  }
+
+  /* ============ MODAIS ============ */
+  #langModal .modal { border-color: rgba(255, 179, 71, 0.55); box-shadow: 0 0 60px rgba(255, 179, 71, 0.3), 0 20px 60px rgba(0, 0, 0, 0.6); max-width: 620px; }
+  #langModal .modal::before { background: linear-gradient(90deg, #ffb347, #ffd700, #ff8a65, #ffb347); background-size: 200% auto; }
+
+  .lang-options { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .lang-option { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px 10px; border-radius: 12px; cursor: pointer; font-family: inherit; background: rgba(21, 26, 36, 0.7); border: 2px solid var(--border); color: var(--text); font-size: 0.85rem; font-weight: 700; text-align: center; transition: transform .2s, border-color .2s, box-shadow .2s, background .2s; }
+  .lang-option:hover { transform: translateY(-3px); border-color: rgba(255, 179, 71, 0.7); background: rgba(255, 179, 71, 0.1); box-shadow: 0 0 18px rgba(255, 179, 71, 0.3); }
+  .lang-option.active { border-color: #ffb347; background: rgba(255, 179, 71, 0.15); box-shadow: 0 0 20px rgba(255, 179, 71, 0.45), inset 0 0 12px rgba(255, 179, 71, 0.1); }
+  .lang-flag { font-size: 1.9rem; line-height: 1; }
+  .lang-name { font-size: 0.92rem; }
+  .lang-native { font-size: 0.7rem; color: var(--text2); font-weight: 500; text-transform: none; }
+  .lang-check { display: none; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #ffb347; color: #1a1200; font-size: 0.75rem; font-weight: 900; margin-top: 4px; }
+  .lang-option.active .lang-check { display: flex; }
+  @media (max-width: 600px) { .lang-options { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 380px) { .lang-options { grid-template-columns: 1fr; } }
+
+  .filter-wrapper { width: 100%; max-width: 1200px; margin-bottom: 22px; display: flex; flex-direction: column; gap: 10px; position: relative; z-index: 1; }
+  .filter-bar { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: rgba(21, 26, 36, 0.7); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 10px; transition: border-color .2s, box-shadow .2s, background .2s; }
+  .filter-bar:focus-within { border-color: #1e90ff; box-shadow: 0 0 14px rgba(30, 144, 255, 0.35), inset 0 0 10px rgba(30, 144, 255, 0.05); background: rgba(28, 35, 48, 0.85); }
+  .filter-icon { font-size: 1rem; color: var(--text2); flex-shrink: 0; transition: color .2s; }
+  .filter-bar:focus-within .filter-icon { color: #58a6ff; }
+  .filter-input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: var(--text); font-family: inherit; font-size: 0.88rem; padding: 4px 0; font-weight: 500; }
+  .filter-input::placeholder { color: var(--text2); opacity: 0.7; }
+  .filter-clear { width: 24px; height: 24px; border-radius: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text2); font-size: 0.8rem; cursor: pointer; display: none; align-items: center; justify-content: center; transition: all .15s; flex-shrink: 0; }
+  .filter-clear:hover { background: rgba(218, 54, 51, 0.2); border-color: var(--red); color: var(--red); }
+  .filter-clear.visible { display: flex; }
+  .filter-count { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text2); flex-shrink: 0; }
+  .filter-count.active { color: #58a6ff; }
+  .filter-empty { text-align: center; padding: 40px 20px; color: var(--text2); font-size: 0.88rem; grid-column: 1 / -1; }
+  .filter-empty strong { color: var(--text); }
+
+  .featured { width: 100%; max-width: 1200px; margin-bottom: 32px; display: none; }
+  .featured.visible { display: block; }
+  .featured-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 14px; }
+  .featured-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+
+  .oldest-section { width: 100%; max-width: 1200px; margin-bottom: 32px; display: none; }
+  .oldest-section.visible { display: block; }
+  .oldest-title { display: flex; align-items: center; gap: 8px; font-size: 1.05rem; font-weight: 700; margin-bottom: 14px; color: #ffb347; }
+  .oldest-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .oldest-card { background: rgba(21, 26, 36, 0.65); backdrop-filter: blur(12px); border: 2px solid rgba(255, 179, 71, 0.35); border-radius: 12px; padding: 18px; padding-top: 44px; display: flex; flex-direction: column; gap: 12px; cursor: pointer; position: relative; transition: transform .2s, background .2s, border-color .2s, box-shadow .2s; overflow: hidden; }
+  .oldest-card:hover { transform: translateY(-4px); background: rgba(28, 35, 48, 0.9); border-color: #ffb347; box-shadow: 0 0 25px rgba(255, 179, 71, 0.35), inset 0 0 20px rgba(255, 179, 71, 0.05); }
+  .oldest-badge { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 12px; background: linear-gradient(135deg, rgba(255, 179, 71, 0.25), rgba(255, 140, 0, 0.15)); border-bottom: 1px solid rgba(255, 179, 71, 0.4); font-size: 0.62rem; font-weight: 800; text-transform: uppercase; color: #ffd9a0; }
+  .oldest-year-badge { position: absolute; top: 8px; right: 10px; background: linear-gradient(135deg, #ffb347, #ff8c00); color: #1a1200; font-size: 0.6rem; font-weight: 900; padding: 2px 8px; border-radius: 20px; z-index: 3; box-shadow: 0 0 10px rgba(255, 179, 71, 0.6); }
+  .oldest-card .coin-logo { border: 2px solid rgba(255, 179, 71, 0.6); box-shadow: 0 0 10px rgba(255, 179, 71, 0.3); }
+
+  .card, .featured-card {
+    background: rgba(21, 26, 36, 0.65); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px;
+    padding: 18px; display: flex; flex-direction: column; gap: 12px;
+    cursor: pointer; position: relative; transition: transform .2s, background .2s; overflow: hidden;
+  }
+  .card:hover, .featured-card:hover { background: rgba(28, 35, 48, 0.85); transform: translateY(-4px); border-color: rgba(255, 255, 255, 0.2); }
+  .featured-card { border-width: 2px; }
+  .featured-card::after { content: ''; position: absolute; top: -50%; left: 0; width: 40%; height: 200%; transform: rotate(30deg); pointer-events: none; z-index: 0; }
+  .featured-card.rank-1 { background: rgba(42, 36, 21, 0.75); border-color: #ffd700; animation: goldPulse 2.5s ease-in-out infinite; }
+  @keyframes goldPulse { 0%, 100% { border-color: rgba(255, 215, 0, 0.6); box-shadow: 0 0 10px rgba(255, 215, 0, 0.2), inset 0 0 15px rgba(255, 215, 0, 0.05); } 50% { border-color: rgba(255, 215, 0, 1); box-shadow: 0 0 25px rgba(255, 215, 0, 0.6), 0 0 50px rgba(218, 165, 32, 0.3), inset 0 0 25px rgba(255, 215, 0, 0.15); } }
+  .featured-card.rank-1::after { background: linear-gradient(to right, transparent 0%, rgba(255, 215, 0, 0.0) 30%, rgba(255, 235, 150, 0.3) 50%, rgba(255, 215, 0, 0.0) 70%, transparent 100%); animation: shimmer 4s infinite linear; }
+  .rank-1 .rank-badge { background: linear-gradient(135deg, #ffe680, #ffd700 40%, #b8860b); color: #1a1200; animation: badgeGlow 2.5s ease-in-out infinite; }
+  .rank-1 .coin-name .name { background: linear-gradient(90deg, #ffe680, #ffd700 50%, #daa520); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .rank-1 .coin-price { color: #ffe680; text-shadow: 0 0 8px rgba(255, 215, 0, 0.5); }
+  .rank-1 .coin-logo { border: 2px solid #ffd700; box-shadow: 0 0 10px rgba(255,215,0,0.5); }
+  .featured-card.rank-2 { background: rgba(38, 41, 48, 0.75); border-color: #c0c0c0; animation: silverPulse 2.5s ease-in-out infinite; }
+  @keyframes silverPulse { 0%, 100% { border-color: rgba(192, 192, 192, 0.5); box-shadow: 0 0 10px rgba(192, 192, 192, 0.2), inset 0 0 15px rgba(192, 192, 192, 0.05); } 50% { border-color: rgba(220, 220, 220, 1); box-shadow: 0 0 25px rgba(192, 192, 192, 0.5), 0 0 50px rgba(160, 160, 160, 0.3), inset 0 0 25px rgba(192, 192, 192, 0.15); } }
+  .featured-card.rank-2::after { background: linear-gradient(to right, transparent 0%, rgba(192, 192, 192, 0.0) 30%, rgba(230, 230, 230, 0.3) 50%, rgba(192, 192, 192, 0.0) 70%, transparent 100%); animation: shimmer 4s infinite linear; animation-delay: 0.5s; }
+  .rank-2 .rank-badge { background: linear-gradient(135deg, #f0f0f0, #c0c0c0 40%, #808080); color: #1a1a1a; animation: badgeGlowSilver 2.5s ease-in-out infinite; }
+  @keyframes badgeGlowSilver { 0%, 100% { box-shadow: 0 0 10px rgba(192, 192, 192, 0.6); } 50% { box-shadow: 0 0 18px rgba(255, 255, 255, 1); } }
+  .rank-2 .coin-name .name { background: linear-gradient(90deg, #f0f0f0, #e0e0e0 50%, #a0a0a0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .rank-2 .coin-price { color: #f0f0f0; text-shadow: 0 0 8px rgba(192, 192, 192, 0.5); }
+  .rank-2 .coin-logo { border: 2px solid #c0c0c0; box-shadow: 0 0 10px rgba(192,192,192,0.4); }
+  .featured-card.rank-3 { background: rgba(44, 31, 22, 0.75); border-color: #cd7f32; animation: bronzePulse 2.5s ease-in-out infinite; }
+  @keyframes bronzePulse { 0%, 100% { border-color: rgba(205, 127, 50, 0.5); box-shadow: 0 0 10px rgba(205, 127, 50, 0.2), inset 0 0 15px rgba(205, 127, 50, 0.05); } 50% { border-color: rgba(255, 150, 80, 1); box-shadow: 0 0 25px rgba(205, 127, 50, 0.5), 0 0 50px rgba(180, 100, 40, 0.3), inset 0 0 25px rgba(205, 127, 50, 0.15); } }
+  .featured-card.rank-3::after { background: linear-gradient(to right, transparent 0%, rgba(205, 127, 50, 0.0) 30%, rgba(255, 180, 100, 0.3) 50%, rgba(205, 127, 50, 0.0) 70%, transparent 100%); animation: shimmer 4s infinite linear; animation-delay: 1s; }
+  .rank-3 .rank-badge { background: linear-gradient(135deg, #ffb380, #cd7f32 40%, #8b4513); color: #fff; animation: badgeGlowBronze 2.5s ease-in-out infinite; }
+  @keyframes badgeGlowBronze { 0%, 100% { box-shadow: 0 0 10px rgba(205, 127, 50, 0.6); } 50% { box-shadow: 0 0 18px rgba(255, 150, 80, 1); } }
+  .rank-3 .coin-name .name { background: linear-gradient(90deg, #ffb380, #cd7f32 50%, #a0522d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .rank-3 .coin-price { color: #ffb380; text-shadow: 0 0 8px rgba(205, 127, 50, 0.5); }
+  .rank-3 .coin-logo { border: 2px solid #cd7f32; box-shadow: 0 0 10px rgba(205,127,50,0.4); }
+
+  @keyframes shimmer { 0% { transform: translateX(-200%) rotate(30deg); } 100% { transform: translateX(500%) rotate(30deg); } }
+  @keyframes badgeGlow { 0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.6); } 50% { box-shadow: 0 0 18px rgba(255, 215, 0, 1); } }
+
+  .rank-badge { position: absolute; top: 0; right: 0; padding: 4px 10px; font-size: 0.7rem; font-weight: 800; border-bottom-left-radius: 10px; z-index: 2; }
+  .card.most-viewed { border-color: var(--blue); box-shadow: 0 0 18px rgba(30,144,255,.4); padding-top: 42px; }
+  .view-badge { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #1e90ff, #00bfff); color: #fff; font-size: 0.55rem; font-weight: 800; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; z-index: 3; }
+
+  .coin-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; position: relative; z-index: 1; }
+  .coin-tag { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 5px; font-size: 0.55rem; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+  .coin-tag.pqc { background: rgba(46, 160, 67, 0.18); color: #3fb950; border: 1px solid rgba(46, 160, 67, 0.5); }
+  .coin-tag.privacy { background: rgba(188, 140, 255, 0.15); color: #bc8cff; border: 1px solid rgba(188, 140, 255, 0.5); }
+  .coin-tag-icon { font-size: 0.65rem; line-height: 1; }
+
+  .oldest-card .coin-tags { margin-top: 4px; }
+  .featured-card .coin-tags { margin-top: 4px; }
+
+  .coin-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; position: relative; z-index: 1; }
+  .coin-identity { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .coin-logo { width: 36px; height: 36px; border-radius: 50%; object-fit: contain; background: var(--bg); border: 1px solid var(--border); flex-shrink: 0; }
+  .featured-card .coin-logo { width: 42px; height: 42px; }
+  .oldest-card .coin-logo { width: 42px; height: 42px; }
+  .coin-name { display: flex; flex-direction: column; min-width: 0; }
+  .coin-name .name { font-weight: 600; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .coin-name .symbol { font-size: 0.72rem; color: var(--text2); text-transform: uppercase; }
+  .coin-price { text-align: right; font-weight: 700; font-size: 1rem; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+  .vol-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 8px; font-size: 0.82rem; gap: 10px; position: relative; z-index: 1; }
+  .vol-row.buyer { background: rgba(13, 40, 24, 0.8); border: 1px solid rgba(46,160,67,.3); }
+  .vol-row.seller { background: rgba(45, 15, 15, 0.8); border: 1px solid rgba(218,54,51,.3); }
+  .vol-row.neutral { background: rgba(28, 35, 48, 0.8); border: 1px solid var(--border); }
+  .vol-left { display: flex; align-items: center; gap: 8px; }
+  .thermo-icon { display: inline-block; font-size: 1.1rem; line-height: 1; will-change: transform, filter; }
+  .vol-row.buyer .thermo-icon { animation: thermoBounce 1.5s ease-in-out infinite, thermoGlow 1.5s ease-in-out infinite; }
+  @keyframes thermoBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  @keyframes thermoGlow { 0%, 100% { filter: drop-shadow(0 0 2px rgba(46, 160, 67, 0.6)); } 50% { filter: drop-shadow(0 0 8px rgba(46, 160, 67, 1)) drop-shadow(0 0 15px rgba(46, 160, 67, 0.6)); } }
+  .vol-label { font-size: 0.62rem; text-transform: uppercase; color: var(--text2); letter-spacing: .5px; }
+  .vol-value { font-weight: 700; font-size: 0.9rem; }
+  .vol-right { font-weight: 700; font-size: 0.72rem; text-transform: uppercase; }
+  .vol-row.buyer .vol-right { color: var(--green); }
+  .vol-row.seller .vol-right { color: var(--red); }
+  .vol-row.neutral .vol-right { color: var(--neutral); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; width: 100%; max-width: 1200px; }
+
+  .loading, .error { text-align: center; padding: 50px 20px; color: var(--text2); grid-column: 1 / -1; }
+  .error { color: var(--red); }
+  .spinner { display: inline-block; width: 22px; height: 22px; border: 3px solid var(--border); border-top-color: #58a6ff; border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .detail { width: 100%; max-width: 640px; display: none; }
+  .detail.visible { display: block; }
+  .back-btn { background: rgba(21, 26, 36, 0.8); backdrop-filter: blur(5px); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; margin-bottom: 14px; font-family: inherit; }
+  .back-btn:hover { background: var(--card-hover); border-color: var(--blue); }
+
+  .detail-header { display: flex; align-items: center; gap: 12px; padding: 14px; background: rgba(21, 26, 36, 0.8); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; }
+  .detail-logo { width: 44px; height: 44px; border-radius: 50%; object-fit: contain; background: var(--bg); border: 2px solid var(--border); flex-shrink: 0; }
+  .detail-header-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .detail-title-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .detail-name { font-size: 1rem; font-weight: 700; }
+  .detail-symbol { font-size: 0.65rem; color: var(--text2); text-transform: uppercase; padding: 1px 6px; background: rgba(255,255,255,.05); border-radius: 4px; }
+  .detail-price { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .detail-status { display: inline-flex; align-items: center; gap: 4px; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 5px; width: fit-content; }
+  .detail-status.buyer { color: var(--green); background: var(--green-bg); }
+  .detail-status.seller { color: var(--red); background: var(--red-bg); }
+  .detail-status.neutral { color: var(--neutral); background: var(--neutral-bg); }
+  .detail-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .detail-tags .coin-tag { font-size: 0.6rem; padding: 3px 9px; }
+
+  .stats { width: 100%; background: rgba(21, 26, 36, 0.8); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 10px; border-collapse: separate; border-spacing: 0; overflow: hidden; font-size: 0.8rem; }
+  .stats tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+  .stats td { padding: 8px 12px; vertical-align: middle; }
+  .stats .lbl { color: var(--text2); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; width: 50%; }
+  .stats .val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stats .sub { font-size: 0.66rem; color: var(--text2); font-weight: 500; margin-top: 1px; }
+
+  .coingecko-link { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; padding: 14px 16px; background: linear-gradient(135deg, rgba(30, 144, 255, 0.12), rgba(100, 180, 255, 0.06)); border: 1px solid rgba(30, 144, 255, 0.4); border-radius: 10px; color: var(--text); text-decoration: none; font-size: 0.82rem; position: relative; overflow: hidden; transition: transform .2s, border-color .2s, box-shadow .2s, background .2s; }
+  .coingecko-link::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(120deg, transparent 30%, rgba(100, 200, 255, 0.15) 50%, transparent 70%); transform: translateX(-100%); transition: transform .6s ease; }
+  .coingecko-link:hover { transform: translateY(-2px); border-color: #1e90ff; box-shadow: 0 0 18px rgba(30, 144, 255, 0.5), inset 0 0 14px rgba(30, 144, 255, 0.08); background: linear-gradient(135deg, rgba(30, 144, 255, 0.2), rgba(100, 180, 255, 0.1)); }
+  .coingecko-link:hover::before { transform: translateX(100%); }
+  .coingecko-link-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .coingecko-icon { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #1e90ff, #00bfff); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 0 10px rgba(30, 144, 255, 0.6); }
+  .coingecko-icon svg { width: 18px; height: 18px; }
+  .coingecko-text { display: flex; flex-direction: column; min-width: 0; }
+  .coingecko-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #58a6ff; }
+  .coingecko-name { font-weight: 700; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .coingecko-arrow { font-size: 1rem; font-weight: 700; color: #58a6ff; transition: transform .2s; flex-shrink: 0; }
+  .coingecko-link:hover .coingecko-arrow { transform: translate(3px, -3px); color: #00bfff; }
+
+  .modal-backdrop { position: fixed; inset: 0; z-index: 100; background: rgba(3, 3, 8, 0.75); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility .25s ease; }
+  .modal-backdrop.open { opacity: 1; visibility: visible; }
+  .modal { width: 100%; max-width: 680px; max-height: 85vh; background: linear-gradient(160deg, rgba(21, 26, 36, 0.98), rgba(11, 14, 20, 0.98)); border: 1px solid rgba(88, 166, 255, 0.4); border-radius: 16px; box-shadow: 0 0 60px rgba(30, 144, 255, 0.25), 0 20px 60px rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; overflow: hidden; transform: translateY(20px) scale(0.97); transition: transform .3s cubic-bezier(.2, .9, .3, 1); position: relative; }
+  .modal-backdrop.open .modal { transform: translateY(0) scale(1); }
+  .modal::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #58a6ff, #bc8cff, #ff8a65, #58a6ff); background-size: 200% auto; animation: gradientShift 4s linear infinite; }
+  #contactModal .modal { border-color: rgba(46, 160, 67, 0.5); }
+  #contactModal .modal::before { background: linear-gradient(90deg, #2ea043, #3fb950, #56d364, #2ea043); background-size: 200% auto; }
+  #qdayInfoModal .modal { border-color: rgba(188, 140, 255, 0.55); max-width: 760px; }
+  #qdayInfoModal .modal::before { background: linear-gradient(90deg, #bc8cff, #d2a8ff, #ff8a65, #bc8cff); background-size: 200% auto; }
+
+  .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); flex-shrink: 0; }
+  .modal-title { display: flex; align-items: center; gap: 10px; font-size: 1.15rem; font-weight: 800; }
+  .modal-title-icon { font-size: 1.5rem; }
+  .modal-close { width: 34px; height: 34px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text2); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; flex-shrink: 0; }
+  .modal-close:hover { background: rgba(218, 54, 51, 0.2); border-color: var(--red); color: var(--red); }
+  .modal-body { padding: 20px 22px 24px; overflow-y: auto; font-size: 0.9rem; line-height: 1.65; }
+  .modal-body::-webkit-scrollbar { width: 8px; }
+  .modal-body::-webkit-scrollbar-thumb { background: rgba(88, 166, 255, 0.3); border-radius: 4px; }
+
+  .qday-hero { position: relative; width: 100%; border-radius: 14px; overflow: hidden; background: radial-gradient(circle at 50% 40%, rgba(60, 30, 120, 0.55), rgba(10, 8, 25, 0.95) 70%); border: 1px solid rgba(188, 140, 255, 0.35); margin-bottom: 18px; padding: 26px 16px 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 240px; }
+  .qday-hero svg { position: relative; z-index: 1; width: 100%; max-width: 420px; height: auto; }
+  .qday-hero-caption { position: relative; z-index: 1; margin-top: 12px; font-size: 0.68rem; letter-spacing: 1.5px; text-transform: uppercase; color: #bc8cff; font-weight: 700; text-align: center; }
+  .qubit-chip { position: relative; z-index: 1; display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+  .qubit-dot { width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle, #fff 0%, #bc8cff 45%, transparent 75%); box-shadow: 0 0 10px 2px rgba(188, 140, 255, 0.85); animation: qubitPulse 2s ease-in-out infinite; }
+  .qubit-dot:nth-child(2) { animation-delay: 0.25s; background: radial-gradient(circle, #fff 0%, #58a6ff 45%, transparent 75%); box-shadow: 0 0 10px 2px rgba(88, 166, 255, 0.85); }
+  .qubit-dot:nth-child(3) { animation-delay: 0.5s; }
+  .qubit-dot:nth-child(4) { animation-delay: 0.75s; background: radial-gradient(circle, #fff 0%, #ff8a65 45%, transparent 75%); box-shadow: 0 0 10px 2px rgba(255, 138, 101, 0.85); }
+  .qubit-dot:nth-child(5) { animation-delay: 1s; background: radial-gradient(circle, #fff 0%, #58a6ff 45%, transparent 75%); box-shadow: 0 0 10px 2px rgba(88, 166, 255, 0.85); }
+  @keyframes qubitPulse { 0%, 100% { transform: scale(1); opacity: 0.75; } 50% { transform: scale(1.5); opacity: 1; } }
+
+  .qday-disclaimer { background: linear-gradient(135deg, rgba(255, 138, 101, 0.12), rgba(188, 140, 255, 0.08)); border: 1px solid rgba(255, 138, 101, 0.45); border-left: 4px solid #ff8a65; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; }
+  .qday-disclaimer-title { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 800; text-transform: uppercase; color: #ffb380; margin-bottom: 8px; }
+  .qday-disclaimer p { color: #ffd9c7; font-size: 0.85rem; line-height: 1.6; }
+  .qday-disclaimer p strong { color: #ffb380; font-weight: 800; }
+  .qday-points { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .qday-point { background: rgba(21, 26, 36, 0.65); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .qday-point-ico { font-size: 1.3rem; margin-bottom: 6px; display: block; }
+  .qday-point-title { font-size: 0.78rem; font-weight: 800; color: #d2a8ff; margin-bottom: 3px; text-transform: uppercase; }
+  .qday-point-desc { font-size: 0.76rem; color: var(--text2); line-height: 1.5; }
+  .qday-research-note { text-align: center; font-size: 0.82rem; color: var(--text2); padding: 14px 16px; border-radius: 10px; background: rgba(30, 144, 255, 0.06); border: 1px dashed rgba(88, 166, 255, 0.35); }
+  .qday-research-note strong { color: #58a6ff; }
+  @media (max-width: 500px) { .qday-points { grid-template-columns: 1fr; } .qday-hero { min-height: 200px; } }
+
+  .contact-card { background: linear-gradient(135deg, rgba(46, 160, 67, 0.1), rgba(63, 185, 80, 0.04)); border: 1px solid rgba(46, 160, 67, 0.35); border-radius: 14px; padding: 24px; margin-bottom: 18px; text-align: center; }
+  .contact-avatar { width: 72px; height: 72px; margin: 0 auto 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #2ea043, #3fb950); font-size: 2rem; box-shadow: 0 0 25px rgba(46, 160, 67, 0.6); animation: avatarPulse 3s ease-in-out infinite; }
+  @keyframes avatarPulse { 0%, 100% { box-shadow: 0 0 25px rgba(46, 160, 67, 0.6); } 50% { box-shadow: 0 0 40px rgba(63, 185, 80, 0.9); } }
+  .contact-name { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; }
+  .contact-role { font-size: 0.7rem; text-transform: uppercase; color: #3fb950; font-weight: 700; margin-bottom: 16px; }
+  .contact-email-box { display: inline-flex; align-items: center; gap: 10px; padding: 12px 18px; background: rgba(11, 14, 20, 0.7); border: 1px solid rgba(46, 160, 67, 0.4); border-radius: 10px; text-decoration: none; color: var(--text); font-weight: 700; font-size: 0.92rem; transition: transform .2s, border-color .2s, box-shadow .2s; word-break: break-all; }
+  .contact-email-box:hover { transform: translateY(-2px); border-color: #3fb950; box-shadow: 0 0 20px rgba(46, 160, 67, 0.5); }
+  .contact-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 18px; }
+  .contact-action { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 14px; border-radius: 10px; font-family: inherit; font-size: 0.82rem; font-weight: 700; text-decoration: none; cursor: pointer; border: 1px solid; background: rgba(21, 26, 36, 0.7); color: #3fb950; border-color: rgba(46, 160, 67, 0.4); transition: transform .2s, border-color .2s, box-shadow .2s; }
+  .contact-action:hover { transform: translateY(-2px); border-color: #3fb950; box-shadow: 0 0 16px rgba(46, 160, 67, 0.5); }
+  .contact-note { text-align: center; font-size: 0.78rem; color: var(--text2); line-height: 1.6; }
+  .contact-note strong { color: #3fb950; }
+
+  .modal-section { margin-bottom: 22px; }
+  .modal-section h3 { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 800; margin-bottom: 8px; color: #58a6ff; text-transform: uppercase; }
+  .modal-section p { margin-bottom: 10px; color: #c9d1d9; }
+  .modal-section strong { color: #fff; font-weight: 700; }
+  .modal-section em { color: #ffb347; font-style: normal; font-weight: 600; }
+  .modal-section ul { list-style: none; padding-left: 0; margin-top: 8px; }
+  .modal-section ul li { padding: 6px 0 6px 22px; position: relative; color: #c9d1d9; }
+  .modal-section ul li::before { content: '▸'; position: absolute; left: 6px; color: #58a6ff; font-weight: 700; }
+  .modal-callout { background: linear-gradient(135deg, rgba(255, 69, 0, 0.1), rgba(255, 140, 0, 0.05)); border: 1px solid rgba(255, 140, 0, 0.4); border-left: 4px solid #ff8c00; border-radius: 8px; padding: 12px 14px; margin: 12px 0; color: #ffcb8a; font-size: 0.85rem; }
+  .modal-callout strong { color: #ffb347; }
+  .modal-badge { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; background: rgba(30, 144, 255, 0.15); color: #58a6ff; border: 1px solid rgba(30, 144, 255, 0.4); margin-right: 6px; }
+
+  @media (max-width: 900px) { .featured-grid, .oldest-grid { grid-template-columns: 1fr; } .sun-wrapper { opacity: 0.5; right: -150px; } }
+  @media (max-width: 600px) { .header h1 { font-size: 2rem; } .grid { grid-template-columns: 1fr; } .stats { font-size: 0.74rem; } .stats td { padding: 7px 9px; } }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; } }
+</style>
+</head>
+<body>
+
+<div id="space-bg" aria-hidden="true">
+  <div class="sun-wrapper"><div class="sun-rays"></div><div class="sun-corona"></div><div class="sun-core"></div></div>
+  <div id="big-stars-container"></div>
+  <div id="small-stars-container"></div>
+</div>
+
+<!-- VIEW 1: TERMÔMETRO Q-DAY -->
+<div id="qdayView">
+  <header class="header">
+    <div class="header-title-wrap">
+      <div class="satoshi-qubit" aria-label="Satoshi Nakamoto stylized as qubit" role="img">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="satoshiBg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#1c2330" stop-opacity="0.95"/><stop offset="100%" stop-color="#0b0e14" stop-opacity="0.95"/></radialGradient>
+            <linearGradient id="satoshiGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffe680"/><stop offset="50%" stop-color="#ffb347"/><stop offset="100%" stop-color="#ff8c00"/></linearGradient>
+            <linearGradient id="satoshiPurple" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#d2a8ff"/><stop offset="100%" stop-color="#bc8cff"/></linearGradient>
+            <linearGradient id="satoshiBlue" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#79c0ff"/><stop offset="100%" stop-color="#58a6ff"/></linearGradient>
+          </defs>
+          <circle cx="50" cy="50" r="46" fill="none" stroke="url(#satoshiPurple)" stroke-width="1" opacity="0.4" stroke-dasharray="2 4"/>
+          <circle cx="50" cy="50" r="40" fill="none" stroke="url(#satoshiGold)" stroke-width="1.2" opacity="0.55" stroke-dasharray="1 3"/>
+          <circle cx="50" cy="50" r="36" fill="url(#satoshiBg)" stroke="url(#satoshiGold)" stroke-width="2"/>
+          <g fill="url(#satoshiGold)">
+            <circle cx="40" cy="35" r="2.4"/><circle cx="40" cy="41" r="2.4"/><circle cx="40" cy="47" r="2.4"/><circle cx="40" cy="53" r="2.4"/><circle cx="40" cy="59" r="2.4"/><circle cx="40" cy="65" r="2.4"/>
+            <circle cx="47" cy="35" r="2.2"/><circle cx="54" cy="38" r="2.2"/><circle cx="57" cy="44" r="2.2"/><circle cx="54" cy="50" r="2.2"/><circle cx="47" cy="53" r="2.2"/>
+            <circle cx="47" cy="59" r="2.2"/><circle cx="55" cy="62" r="2.2"/><circle cx="59" cy="68" r="2.2"/><circle cx="55" cy="73" r="2.2"/><circle cx="47" cy="75" r="2.2"/>
+            <rect x="43" y="28" width="2" height="5" rx="1"/><rect x="50" y="28" width="2" height="5" rx="1"/>
+          </g>
+          <circle cx="78" cy="50" r="3" fill="url(#satoshiBlue)"><animate attributeName="r" values="2.5;4;2.5" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite"/></circle>
+          <circle cx="55" cy="14" r="2.5" fill="url(#satoshiGold)"><animate attributeName="r" values="2;3.5;2" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;1;0.6" dur="2.5s" repeatCount="indefinite"/></circle>
+          <circle cx="45" cy="86" r="2.5" fill="url(#satoshiPurple)"><animate attributeName="r" values="2;3.5;2" dur="1.8s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;1;0.6" dur="1.8s" repeatCount="indefinite"/></circle>
+          <circle cx="50" cy="50" r="36" fill="none" stroke="url(#satoshiPurple)" stroke-width="0.5" opacity="0.6"/>
+        </svg>
+        <div class="satoshi-orbit" aria-hidden="true"></div>
+      </div>
+      <h1 data-i18n="site.title">Termômetro Q-Day</h1>
+    </div>
+    <div class="header-title-accent"></div>
+    <div class="header-actions">
+      <button class="info-btn" id="infoBtn" type="button"><span class="info-btn-icon">ℹ️</span><span data-i18n="btn.info">Informação</span></button>
+      <button class="qday-info-btn" id="qdayInfoBtn" type="button"><span class="qday-info-btn-icon">⚛️</span><span data-i18n="btn.qday">Q-Day</span></button>
+      <button class="contact-btn" id="contactBtn" type="button"><span class="contact-btn-icon">✉️</span><span data-i18n="btn.contact">Contato</span></button>
+      <button class="lang-btn" id="langBtn" type="button"><span class="lang-btn-icon">🌐</span><span data-i18n="btn.lang">Linguagem</span></button>
+      <button class="bolha-btn" id="bolhaBtn" type="button"><span>🫧</span><span data-i18n="btn.bolha">Bolha</span></button>
+      <button class="galaxia-btn" id="galaxiaBtn" type="button"><span>🌌</span><span data-i18n="btn.galaxia">Galáxia</span></button>
+    </div>
+    <p data-i18n="site.subtitle">Setor Quantum-Resistant · CoinGecko</p>
+    <p style="margin-top:6px;font-size:0.78rem" id="lastUpdate" data-i18n="site.loading">Carregando...</p>
+  </header>
+
+  <div class="filter-wrapper">
+    <div class="filter-bar">
+      <span class="filter-icon">🔍</span>
+      <input type="search" id="filterInput" class="filter-input" data-i18n-placeholder="filter.placeholder" autocomplete="off" spellcheck="false">
+      <button class="filter-clear" id="filterClear" type="button">✕</button>
+      <span class="filter-count" id="filterCount" aria-live="polite"></span>
+    </div>
+  </div>
+
+  <section class="featured" id="featured">
+    <h2 class="featured-title" data-i18n="section.top3">🏆 Top 3 · Maior Volume 24h</h2>
+    <div class="featured-grid" id="featuredGrid"></div>
+  </section>
+
+  <section class="oldest-section" id="oldestSection">
+    <h2 class="oldest-title"><span class="ico">🏛️</span> <span data-i18n="section.oldest">As 3 Moedas Mais Antigas do Setor</span></h2>
+    <div class="oldest-grid" id="oldestGrid"></div>
+  </section>
+
+  <main class="grid" id="grid">
+    <div class="loading"><div class="spinner"></div><div data-i18n="loading.coins">Buscando moedas...</div></div>
+  </main>
+</div>
+
+<!-- VIEW 2: BOLHAS -->
+<div id="bolhaView" style="display:none;">
+  <header class="header">
+    <div class="header-title-wrap"><h1 class="bolha-title" data-i18n="bolha.title">Bolhas</h1></div>
+    <div class="bolha-header-accent"></div>
+    <div class="bolha-back-wrap">
+      <button class="bolha-back-btn" id="backToQdayBtn" type="button"><span>←</span><span data-i18n="bolha.back">Voltar ao Termômetro Q-Day</span></button>
+    </div>
+    <p data-i18n="bolha.subtitle">Cada moeda é uma bolha · Verde = Comprador · Vermelho = Vendedor</p>
+    <p style="margin-top:6px;font-size:0.78rem" id="lastUpdateBolha">Carregando...</p>
+    <div class="bolha-legend">
+      <span class="bolha-legend-item"><span class="bolha-legend-dot green"></span><span data-i18n="state.buyer">Comprador</span></span>
+      <span class="bolha-legend-item"><span class="bolha-legend-dot red"></span><span data-i18n="state.seller">Vendedor</span></span>
+      <span class="bolha-legend-item"><span class="bolha-legend-dot gray"></span><span data-i18n="state.neutral">Neutro</span></span>
+    </div>
+  </header>
+  <div class="bolha-container" id="bolhaContainer">
+    <div class="bolha-empty"><div class="spinner"></div><div data-i18n="bolha.loading">Carregando bolhas...</div></div>
+  </div>
+  <div class="bolha-tooltip" id="bolhaTooltip"></div>
+</div>
+
+<!-- VIEW 3: GALÁXIA -->
+<div id="galaxiaView" style="display:none;">
+  <header class="header">
+    <div class="header-title-wrap">
+      <h1 class="galaxia-title" data-i18n="galaxia.title">Galáxia</h1>
+    </div>
+    <div class="galaxia-header-accent"></div>
+    <div class="galaxia-back-wrap">
+      <button class="galaxia-back-btn" id="backFromGalaxiaBtn" type="button"><span>←</span><span data-i18n="galaxia.back">Voltar ao Termômetro Q-Day</span></button>
+    </div>
+    <p data-i18n="galaxia.subtitle">Cada moeda orbita o Sol (maior volume × market cap) · Tamanho = Volume 24h</p>
+    <p style="margin-top:6px;font-size:0.78rem" id="lastUpdateGalaxia">Carregando...</p>
+    <div class="galaxia-legend">
+      <span class="galaxia-legend-item"><span class="galaxia-legend-dot sun"></span><span data-i18n="galaxia.legend.sun">Sol (maior volume × mcap)</span></span>
+      <span class="galaxia-legend-item"><span class="galaxia-legend-dot giant"></span><span data-i18n="galaxia.legend.giant">Gigante</span></span>
+      <span class="galaxia-legend-item"><span class="galaxia-legend-dot planet"></span><span data-i18n="galaxia.legend.planet">Planeta</span></span>
+      <span class="galaxia-legend-item"><span class="galaxia-legend-dot moon"></span><span data-i18n="galaxia.legend.moon">Lua</span></span>
+    </div>
+  </header>
+
+  <div class="galaxia-container" id="galaxiaContainer">
+    <div class="galaxia-stars-bg"></div>
+    <div class="galaxia-nebula n1"></div>
+    <div class="galaxia-nebula n2"></div>
+    <div class="galaxia-nebula n3"></div>
+    <div class="galaxia-empty"><div class="spinner"></div><div data-i18n="galaxia.loading">Formando a galáxia...</div></div>
+  </div>
+  <div class="galaxia-tooltip" id="galaxiaTooltip"></div>
+</div>
+
+<!-- DETAIL VIEW -->
+<div class="detail" id="detailView">
+  <button class="back-btn" id="backBtn" data-i18n="btn.back">← Voltar</button>
+  <div id="detailContent"></div>
+</div>
+
+<!-- MODAIS -->
+<div class="modal-backdrop" id="infoModal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title"><span class="modal-title-icon">🌡</span><span data-i18n="info.title">Entenda o Q-Day</span></div><button class="modal-close" id="infoModalClose" type="button">✕</button></div>
+    <div class="modal-body" id="infoModalBody"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="qdayInfoModal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title"><span class="modal-title-icon">⚛️</span><span data-i18n="qday.title">Q-Day · Universo Quântico</span></div><button class="modal-close" id="qdayInfoModalClose" type="button">✕</button></div>
+    <div class="modal-body" id="qdayInfoModalBody"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="contactModal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title"><span class="modal-title-icon">✉️</span><span data-i18n="contact.title">Entre em Contato</span></div><button class="modal-close" id="contactModalClose" type="button">✕</button></div>
+    <div class="modal-body">
+      <div class="contact-card"><div class="contact-avatar">👤</div><div class="contact-name">Maycon</div><div class="contact-role" data-i18n="contact.role">Desenvolvedor do Painel</div><a class="contact-email-box" href="mailto:mayconard2018@gmail.com"><span>📧</span><span>mayconard2018@gmail.com</span><span>↗</span></a></div>
+      <div class="contact-actions"><a class="contact-action" href="mailto:mayconard2018@gmail.com?subject=Contato%20-%20Term%C3%B4metro%20Q-Day"><span>✉️</span><span data-i18n="contact.send">Enviar E-mail</span></a></div>
+      <div class="contact-note" id="contactNote"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="langModal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title"><span class="modal-title-icon">🌐</span><span data-i18n="lang.title">Escolha o Idioma</span></div><button class="modal-close" id="langModalClose" type="button">✕</button></div>
+    <div class="modal-body">
+      <div class="lang-options" id="langOptions">
+        <button class="lang-option" data-lang="pt" type="button"><span class="lang-flag">🇧🇷</span><span class="lang-name">Português (BR)</span><span class="lang-native">Português Brasil</span><span class="lang-check">✓</span></button>
+        <button class="lang-option" data-lang="pt-PT" type="button"><span class="lang-flag">🇵🇹</span><span class="lang-name">Português (PT)</span><span class="lang-native">Portugal</span><span class="lang-check">✓</span></button>
+        <button class="lang-option" data-lang="en" type="button"><span class="lang-flag">🇺🇸</span><span class="lang-name">English</span><span class="lang-native">English</span><span class="lang-check">✓</span></button>
+        <button class="lang-option" data-lang="es" type="button"><span class="lang-flag">🇪🇸</span><span class="lang-name">Español</span><span class="lang-native">Español</span><span class="lang-check">✓</span></button>
+        <button class="lang-option" data-lang="fr" type="button"><span class="lang-flag">🇫🇷</span><span class="lang-name">Français</span><span class="lang-native">Français</span><span class="lang-check">✓</span></button>
+        <button class="lang-option" data-lang="ar" type="button"><span class="lang-flag">🇸🇦</span><span class="lang-name">العربية</span><span class="lang-native">Árabe</span><span class="lang-check">✓</span></button>
+        <button class="lang-option" data-lang="ja" type="button"><span class="lang-flag">🇯🇵</span><span class="lang-name">日本語</span><span class="lang-native">Japanese</span><span class="lang-check">✓</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const I18N = {
+    pt: { 'site.title': 'Termômetro Q-Day', 'site.subtitle': 'Setor Quantum-Resistant · CoinGecko', 'site.loading': 'Carregando...', 'site.updated': 'Última atualização:', 'site.cache': '(cache)', 'btn.info': 'Informação', 'btn.qday': 'Q-Day', 'btn.contact': 'Contato', 'btn.lang': 'Linguagem', 'btn.bolha': 'Bolha', 'btn.galaxia': 'Galáxia', 'btn.back': '← Voltar', 'filter.placeholder': 'Filtrar por nome ou símbolo (ex: QRL, Bitcoin...)', 'filter.count': 'de', 'section.top3': '🏆 Top 3 · Maior Volume 24h', 'section.oldest': 'As 3 Moedas Mais Antigas do Setor', 'loading.coins': 'Buscando moedas...', 'error.load': '⚠️ Falha ao carregar.', 'error.hint': 'Verifique a conexão ou use um servidor local (CORS).', 'error.noCoins': 'Nenhuma moeda encontrada.', 'filter.empty': 'Nenhuma moeda corresponde a', 'filter.tryOther': 'Tente outro termo.', 'state.buyer': 'Comprador', 'state.seller': 'Vendedor', 'state.neutral': 'Neutro', 'badge.mostViewed': '🌍 Mais Vista · 24h', 'rank.1': '🥇 1º', 'rank.2': '🥈 2º', 'rank.3': '🥉 3º', 'oldest.badge': 'Mais Antiga · Fundada em', 'vol.24h': 'Volume 24h', 'vol.1h': 'Volume 1h', 'label.cap': 'Capitalização', 'label.supplyCirculating': 'Supply circulante', 'label.supplyTotal': 'Supply total', 'label.supplyMax': 'Supply máximo', 'label.fdv': 'FDV', 'label.launchYear': 'Ano de Lançamento', 'label.category': 'Categoria', 'tag.pqc': 'Segurança Pós-Quântica', 'tag.privacy': 'Privacidade', 'coingecko.view': 'Ver na CoinGecko', 'detail.loading': 'Carregando...', 'detail.unavailable': 'Indisponível', 'detail.notFound': 'Moeda não encontrada.', 'info.title': 'Entenda o Q-Day', 'qday.title': 'Q-Day · Universo Quântico', 'contact.title': 'Entre em Contato', 'contact.role': 'Desenvolvedor do Painel', 'contact.send': 'Enviar E-mail', 'contact.note': 'Para dúvidas, sugestões, correções ou parcerias relacionadas ao painel, entre em contato por e-mail.', 'lang.title': 'Escolha o Idioma', 'bolha.title': 'Bolhas', 'bolha.subtitle': 'Cada moeda é uma bolha · Verde = Comprador · Vermelho = Vendedor', 'bolha.back': 'Voltar ao Termômetro Q-Day', 'bolha.loading': 'Carregando bolhas...', 'bolha.price': 'Preço', 'bolha.change': 'Variação 24h', 'galaxia.title': 'Galáxia', 'galaxia.subtitle': 'Cada moeda orbita o Sol (maior volume × market cap) · Tamanho = Volume 24h', 'galaxia.back': 'Voltar ao Termômetro Q-Day', 'galaxia.loading': 'Formando a galáxia...', 'galaxia.legend.sun': 'Sol (maior volume × mcap)', 'galaxia.legend.giant': 'Gigante', 'galaxia.legend.planet': 'Planeta', 'galaxia.legend.moon': 'Lua', 'galaxia.tooltip.sun': '☀️ SOL', 'galaxia.tooltip.class': 'Classe', 'galaxia.tooltip.giant': 'Gigante', 'galaxia.tooltip.planet': 'Planeta', 'galaxia.tooltip.moon': 'Lua', 'galaxia.tooltip.rank': 'Ranking' },
+    'pt-PT': { 'site.title': 'Termómetro Q-Day', 'site.subtitle': 'Setor Quantum-Resistant · CoinGecko', 'site.loading': 'A carregar...', 'site.updated': 'Última atualização:', 'site.cache': '(cache)', 'btn.info': 'Informação', 'btn.qday': 'Q-Day', 'btn.contact': 'Contacto', 'btn.lang': 'Idioma', 'btn.bolha': 'Bolha', 'btn.galaxia': 'Galáxia', 'btn.back': '← Voltar', 'filter.placeholder': 'Filtrar por nome ou símbolo (ex: QRL, Bitcoin...)', 'filter.count': 'de', 'section.top3': '🏆 Top 3 · Maior Volume 24h', 'section.oldest': 'As 3 Moedas Mais Antigas do Setor', 'loading.coins': 'A procurar moedas...', 'error.load': '⚠️ Falha ao carregar.', 'error.hint': 'Verifique a ligação ou utilize um servidor local (CORS).', 'error.noCoins': 'Nenhuma moeda encontrada.', 'filter.empty': 'Nenhuma moeda corresponde a', 'filter.tryOther': 'Tente outro termo.', 'state.buyer': 'Comprador', 'state.seller': 'Vendedor', 'state.neutral': 'Neutro', 'badge.mostViewed': '🌍 Mais Vista · 24h', 'rank.1': '🥇 1º', 'rank.2': '🥈 2º', 'rank.3': '🥉 3º', 'oldest.badge': 'Mais Antiga · Fundada em', 'vol.24h': 'Volume 24h', 'vol.1h': 'Volume 1h', 'label.cap': 'Capitalização', 'label.supplyCirculating': 'Oferta em circulação', 'label.supplyTotal': 'Oferta total', 'label.supplyMax': 'Oferta máxima', 'label.fdv': 'FDV', 'label.launchYear': 'Ano de Lançamento', 'label.category': 'Categoria', 'tag.pqc': 'Segurança Pós-Quântica', 'tag.privacy': 'Privacidade', 'coingecko.view': 'Ver na CoinGecko', 'detail.loading': 'A carregar...', 'detail.unavailable': 'Indisponível', 'detail.notFound': 'Moeda não encontrada.', 'info.title': 'Compreender o Q-Day', 'qday.title': 'Q-Day · Universo Quântico', 'contact.title': 'Entre em Contacto', 'contact.role': 'Programador do Painel', 'contact.send': 'Enviar E-mail', 'contact.note': 'Para dúvidas, sugestões, correções ou parcerias relacionadas com o painel, contacte-nos por e-mail.', 'lang.title': 'Escolha o Idioma', 'bolha.title': 'Bolhas', 'bolha.subtitle': 'Cada moeda é uma bolha · Verde = Comprador · Vermelho = Vendedor', 'bolha.back': 'Voltar ao Termómetro Q-Day', 'bolha.loading': 'A carregar bolhas...', 'bolha.price': 'Preço', 'bolha.change': 'Variação 24h', 'galaxia.title': 'Galáxia', 'galaxia.subtitle': 'Cada moeda orbita o Sol (maior volume × market cap) · Tamanho = Volume 24h', 'galaxia.back': 'Voltar ao Termómetro Q-Day', 'galaxia.loading': 'A formar a galáxia...', 'galaxia.legend.sun': 'Sol (maior volume × mcap)', 'galaxia.legend.giant': 'Gigante', 'galaxia.legend.planet': 'Planeta', 'galaxia.legend.moon': 'Lua', 'galaxia.tooltip.sun': '☀️ SOL', 'galaxia.tooltip.class': 'Classe', 'galaxia.tooltip.giant': 'Gigante', 'galaxia.tooltip.planet': 'Planeta', 'galaxia.tooltip.moon': 'Lua', 'galaxia.tooltip.rank': 'Ranking' },
+    en: { 'site.title': 'Q-Day Thermometer', 'site.subtitle': 'Quantum-Resistant Sector · CoinGecko', 'site.loading': 'Loading...', 'site.updated': 'Last update:', 'site.cache': '(cache)', 'btn.info': 'Info', 'btn.qday': 'Q-Day', 'btn.contact': 'Contact', 'btn.lang': 'Language', 'btn.bolha': 'Bubble', 'btn.galaxia': 'Galaxy', 'btn.back': '← Back', 'filter.placeholder': 'Filter by name or symbol (e.g. QRL, Bitcoin...)', 'filter.count': 'of', 'section.top3': '🏆 Top 3 · Highest 24h Volume', 'section.oldest': 'The 3 Oldest Coins in the Sector', 'loading.coins': 'Fetching coins...', 'error.load': '⚠️ Failed to load.', 'error.hint': 'Check your connection or use a local server (CORS).', 'error.noCoins': 'No coins found.', 'filter.empty': 'No coins match', 'filter.tryOther': 'Try another term.', 'state.buyer': 'Buyer', 'state.seller': 'Seller', 'state.neutral': 'Neutral', 'badge.mostViewed': '🌍 Most Viewed · 24h', 'rank.1': '🥇 1st', 'rank.2': '🥈 2nd', 'rank.3': '🥉 3rd', 'oldest.badge': 'Oldest · Founded in', 'vol.24h': '24h Volume', 'vol.1h': '1h Volume', 'label.cap': 'Market Cap', 'label.supplyCirculating': 'Circulating Supply', 'label.supplyTotal': 'Total Supply', 'label.supplyMax': 'Max Supply', 'label.fdv': 'FDV', 'label.launchYear': 'Launch Year', 'label.category': 'Category', 'tag.pqc': 'Post-Quantum Security', 'tag.privacy': 'Privacy', 'coingecko.view': 'View on CoinGecko', 'detail.loading': 'Loading...', 'detail.unavailable': 'Unavailable', 'detail.notFound': 'Coin not found.', 'info.title': 'Understanding Q-Day', 'qday.title': 'Q-Day · Quantum Universe', 'contact.title': 'Contact Us', 'contact.role': 'Panel Developer', 'contact.send': 'Send Email', 'contact.note': 'For questions, suggestions, corrections or partnerships, contact us by email.', 'lang.title': 'Choose Language', 'bolha.title': 'Bubbles', 'bolha.subtitle': 'Each coin is a bubble · Green = Buyer · Red = Seller', 'bolha.back': 'Back to Q-Day Thermometer', 'bolha.loading': 'Loading bubbles...', 'bolha.price': 'Price', 'bolha.change': '24h Change', 'galaxia.title': 'Galaxy', 'galaxia.subtitle': 'Each coin orbits the Sun (highest volume × market cap) · Size = 24h Volume', 'galaxia.back': 'Back to Q-Day Thermometer', 'galaxia.loading': 'Forming the galaxy...', 'galaxia.legend.sun': 'Sun (highest volume × mcap)', 'galaxia.legend.giant': 'Giant', 'galaxia.legend.planet': 'Planet', 'galaxia.legend.moon': 'Moon', 'galaxia.tooltip.sun': '☀️ SUN', 'galaxia.tooltip.class': 'Class', 'galaxia.tooltip.giant': 'Giant', 'galaxia.tooltip.planet': 'Planet', 'galaxia.tooltip.moon': 'Moon', 'galaxia.tooltip.rank': 'Rank' },
+    es: { 'site.title': 'Termómetro Q-Day', 'site.subtitle': 'Sector Quantum-Resistant · CoinGecko', 'site.loading': 'Cargando...', 'site.updated': 'Última actualización:', 'site.cache': '(caché)', 'btn.info': 'Información', 'btn.qday': 'Q-Day', 'btn.contact': 'Contacto', 'btn.lang': 'Idioma', 'btn.bolha': 'Burbuja', 'btn.galaxia': 'Galaxia', 'btn.back': '← Volver', 'filter.placeholder': 'Filtrar por nombre o símbolo (ej: QRL, Bitcoin...)', 'filter.count': 'de', 'section.top3': '🏆 Top 3 · Mayor Volumen 24h', 'section.oldest': 'Las 3 Monedas Más Antiguas del Sector', 'loading.coins': 'Buscando monedas...', 'error.load': '⚠️ Error al cargar.', 'error.hint': 'Verifica la conexión o usa un servidor local (CORS).', 'error.noCoins': 'No se encontraron monedas.', 'filter.empty': 'Ninguna moneda coincide con', 'filter.tryOther': 'Prueba otro término.', 'state.buyer': 'Comprador', 'state.seller': 'Vendedor', 'state.neutral': 'Neutral', 'badge.mostViewed': '🌍 Más Vista · 24h', 'rank.1': '🥇 1º', 'rank.2': '🥈 2º', 'rank.3': '🥉 3º', 'oldest.badge': 'Más Antigua · Fundada en', 'vol.24h': 'Volumen 24h', 'vol.1h': 'Volumen 1h', 'label.cap': 'Capitalización', 'label.supplyCirculating': 'Suministro circulante', 'label.supplyTotal': 'Suministro total', 'label.supplyMax': 'Suministro máximo', 'label.fdv': 'FDV', 'label.launchYear': 'Año de Lanzamiento', 'label.category': 'Categoría', 'tag.pqc': 'Seguridad Post-Cuántica', 'tag.privacy': 'Privacidad', 'coingecko.view': 'Ver en CoinGecko', 'detail.loading': 'Cargando...', 'detail.unavailable': 'No disponible', 'detail.notFound': 'Moneda no encontrada.', 'info.title': 'Entiende el Q-Day', 'qday.title': 'Q-Day · Universo Cuántico', 'contact.title': 'Contáctanos', 'contact.role': 'Desarrollador del Panel', 'contact.send': 'Enviar Correo', 'contact.note': 'Para dudas, sugerencias, correcciones o alianzas, contáctanos por correo.', 'lang.title': 'Elige el Idioma', 'bolha.title': 'Burbujas', 'bolha.subtitle': 'Cada moneda es una burbuja · Verde = Comprador · Rojo = Vendedor', 'bolha.back': 'Volver al Termómetro Q-Day', 'bolha.loading': 'Cargando burbujas...', 'bolha.price': 'Precio', 'bolha.change': 'Cambio 24h', 'galaxia.title': 'Galaxia', 'galaxia.subtitle': 'Cada moneda orbita el Sol (mayor volumen × market cap) · Tamaño = Volumen 24h', 'galaxia.back': 'Volver al Termómetro Q-Day', 'galaxia.loading': 'Formando la galaxia...', 'galaxia.legend.sun': 'Sol (mayor volumen × mcap)', 'galaxia.legend.giant': 'Gigante', 'galaxia.legend.planet': 'Planeta', 'galaxia.legend.moon': 'Luna', 'galaxia.tooltip.sun': '☀️ SOL', 'galaxia.tooltip.class': 'Clase', 'galaxia.tooltip.giant': 'Gigante', 'galaxia.tooltip.planet': 'Planeta', 'galaxia.tooltip.moon': 'Luna', 'galaxia.tooltip.rank': 'Ranking' },
+    fr: { 'site.title': 'Thermomètre Q-Day', 'site.subtitle': 'Secteur Quantum-Resistant · CoinGecko', 'site.loading': 'Chargement...', 'site.updated': 'Dernière mise à jour :', 'site.cache': '(cache)', 'btn.info': 'Info', 'btn.qday': 'Q-Day', 'btn.contact': 'Contact', 'btn.lang': 'Langue', 'btn.bolha': 'Bulle', 'btn.galaxia': 'Galaxie', 'btn.back': '← Retour', 'filter.placeholder': 'Filtrer par nom ou symbole (ex : QRL, Bitcoin...)', 'filter.count': 'sur', 'section.top3': '🏆 Top 3 · Plus grand volume 24h', 'section.oldest': 'Les 3 pièces les plus anciennes du secteur', 'loading.coins': 'Chargement des pièces...', 'error.load': '⚠️ Échec du chargement.', 'error.hint': 'Vérifiez la connexion ou utilisez un serveur local (CORS).', 'error.noCoins': 'Aucune pièce trouvée.', 'filter.empty': 'Aucune pièce ne correspond à', 'filter.tryOther': 'Essayez un autre terme.', 'state.buyer': 'Acheteur', 'state.seller': 'Vendeur', 'state.neutral': 'Neutre', 'badge.mostViewed': '🌍 La plus vue · 24h', 'rank.1': '🥇 1er', 'rank.2': '🥈 2e', 'rank.3': '🥉 3e', 'oldest.badge': 'La plus ancienne · Fondée en', 'vol.24h': 'Volume 24h', 'vol.1h': 'Volume 1h', 'label.cap': 'Capitalisation', 'label.supplyCirculating': 'Offre en circulation', 'label.supplyTotal': 'Offre totale', 'label.supplyMax': 'Offre maximale', 'label.fdv': 'FDV', 'label.launchYear': 'Année de lancement', 'label.category': 'Catégorie', 'tag.pqc': 'Sécurité post-quantique', 'tag.privacy': 'Confidentialité', 'coingecko.view': 'Voir sur CoinGecko', 'detail.loading': 'Chargement...', 'detail.unavailable': 'Indisponible', 'detail.notFound': 'Pièce introuvable.', 'info.title': 'Comprendre le Q-Day', 'qday.title': 'Q-Day · Univers Quantique', 'contact.title': 'Nous Contacter', 'contact.role': 'Développeur du Panneau', 'contact.send': 'Envoyer un E-mail', 'contact.note': 'Pour toute question, suggestion ou partenariat, contactez-nous par e-mail.', 'lang.title': 'Choisir la Langue', 'bolha.title': 'Bulles', 'bolha.subtitle': 'Chaque pièce est une bulle · Vert = Acheteur · Rouge = Vendeur', 'bolha.back': 'Retour au Thermomètre Q-Day', 'bolha.loading': 'Chargement des bulles...', 'bolha.price': 'Prix', 'bolha.change': 'Variation 24h', 'galaxia.title': 'Galaxie', 'galaxia.subtitle': 'Chaque pièce orbite le Soleil (plus grand volume × capitalisation) · Taille = Volume 24h', 'galaxia.back': 'Retour au Thermomètre Q-Day', 'galaxia.loading': 'Formation de la galaxie...', 'galaxia.legend.sun': 'Soleil (plus grand volume × mcap)', 'galaxia.legend.giant': 'Géante', 'galaxia.legend.planet': 'Planète', 'galaxia.legend.moon': 'Lune', 'galaxia.tooltip.sun': '☀️ SOLEIL', 'galaxia.tooltip.class': 'Classe', 'galaxia.tooltip.giant': 'Géante', 'galaxia.tooltip.planet': 'Planète', 'galaxia.tooltip.moon': 'Lune', 'galaxia.tooltip.rank': 'Classement' },
+    ar: { 'site.title': 'مقياس Q-Day', 'site.subtitle': 'قطاع مقاوم للحوسبة الكمية · CoinGecko', 'site.loading': 'جارٍ التحميل...', 'site.updated': 'آخر تحديث:', 'site.cache': '(ذاكرة مؤقتة)', 'btn.info': 'معلومات', 'btn.qday': 'Q-Day', 'btn.contact': 'اتصل بنا', 'btn.lang': 'اللغة', 'btn.bolha': 'فقاعة', 'btn.galaxia': 'مجرة', 'btn.back': '→ رجوع', 'filter.placeholder': 'تصفية بالاسم أو الرمز...', 'filter.count': 'من', 'section.top3': '🏆 أفضل 3 · أعلى حجم 24 ساعة', 'section.oldest': 'أقدم 3 عملات في القطاع', 'loading.coins': 'جارٍ جلب العملات...', 'error.load': '⚠️ فشل التحميل.', 'error.hint': 'تحقق من الاتصال أو استخدم خادمًا محليًا.', 'error.noCoins': 'لم يتم العثور على عملات.', 'filter.empty': 'لا توجد عملات تطابق', 'filter.tryOther': 'جرّب مصطلحًا آخر.', 'state.buyer': 'مشترٍ', 'state.seller': 'بائع', 'state.neutral': 'محايد', 'badge.mostViewed': '🌍 الأكثر مشاهدة · 24 ساعة', 'rank.1': '🥇 الأول', 'rank.2': '🥈 الثاني', 'rank.3': '🥉 الثالث', 'oldest.badge': 'الأقدم · تأسست في', 'vol.24h': 'حجم 24 ساعة', 'vol.1h': 'حجم ساعة واحدة', 'label.cap': 'القيمة السوقية', 'label.supplyCirculating': 'المعروض المتداول', 'label.supplyTotal': 'إجمالي المعروض', 'label.supplyMax': 'الحد الأقصى للمعروض', 'label.fdv': 'FDV', 'label.launchYear': 'سنة الإطلاق', 'label.category': 'الفئة', 'tag.pqc': 'أمان ما بعد الكم', 'tag.privacy': 'خصوصية', 'coingecko.view': 'عرض على CoinGecko', 'detail.loading': 'جارٍ التحميل...', 'detail.unavailable': 'غير متوفر', 'detail.notFound': 'العملة غير موجودة.', 'info.title': 'فهم Q-Day', 'qday.title': 'Q-Day · الكون الكمي', 'contact.title': 'اتصل بنا', 'contact.role': 'مطور اللوحة', 'contact.send': 'إرسال بريد إلكتروني', 'contact.note': 'للاستفسارات أو الاقتراحات، تواصل معنا عبر البريد الإلكتروني.', 'lang.title': 'اختر اللغة', 'bolha.title': 'فقاعات', 'bolha.subtitle': 'كل عملة فقاعة · أخضر = مشترٍ · أحمر = بائع', 'bolha.back': 'رجوع إلى مقياس Q-Day', 'bolha.loading': 'جارٍ تحميل الفقاعات...', 'bolha.price': 'السعر', 'bolha.change': 'التغير 24 ساعة', 'galaxia.title': 'مجرة', 'galaxia.subtitle': 'كل عملة تدور حول الشمس (أعلى حجم × قيمة سوقية) · الحجم = حجم 24 ساعة', 'galaxia.back': 'رجوع إلى مقياس Q-Day', 'galaxia.loading': 'تشكيل المجرة...', 'galaxia.legend.sun': 'الشمس (أعلى حجم × قيمة)', 'galaxia.legend.giant': 'عملاق', 'galaxia.legend.planet': 'كوكب', 'galaxia.legend.moon': 'قمر', 'galaxia.tooltip.sun': '☀️ الشمس', 'galaxia.tooltip.class': 'الفئة', 'galaxia.tooltip.giant': 'عملاق', 'galaxia.tooltip.planet': 'كوكب', 'galaxia.tooltip.moon': 'قمر', 'galaxia.tooltip.rank': 'الترتيب' },
+    ja: { 'site.title': 'Q-Day 温度計', 'site.subtitle': '量子耐性セクター · CoinGecko', 'site.loading': '読み込み中...', 'site.updated': '最終更新:', 'site.cache': '(キャッシュ)', 'btn.info': '情報', 'btn.qday': 'Q-Day', 'btn.contact': '連絡先', 'btn.lang': '言語', 'btn.bolha': 'バブル', 'btn.galaxia': '銀河', 'btn.back': '← 戻る', 'filter.placeholder': '名前またはシンボルで絞り込む...', 'filter.count': '/', 'section.top3': '🏆 トップ3 · 24時間出来高', 'section.oldest': 'セクター最古の3コイン', 'loading.coins': 'コインを取得中...', 'error.load': '⚠️ 読み込み失敗。', 'error.hint': '接続を確認するか、ローカルサーバーを使用してください。', 'error.noCoins': 'コインが見つかりません。', 'filter.empty': '一致するコインはありません:', 'filter.tryOther': '別の用語を試してください。', 'state.buyer': '買い手', 'state.seller': '売り手', 'state.neutral': '中立', 'badge.mostViewed': '🌍 最多閲覧 · 24h', 'rank.1': '🥇 1位', 'rank.2': '🥈 2位', 'rank.3': '🥉 3位', 'oldest.badge': '最古 · 創設年', 'vol.24h': '24時間出来高', 'vol.1h': '1時間出来高', 'label.cap': '時価総額', 'label.supplyCirculating': '循環供給量', 'label.supplyTotal': '総供給量', 'label.supplyMax': '最大供給量', 'label.fdv': 'FDV', 'label.launchYear': 'ローンチ年', 'label.category': 'カテゴリ', 'tag.pqc': 'ポスト量子セキュリティ', 'tag.privacy': 'プライバシー', 'coingecko.view': 'CoinGeckoで見る', 'detail.loading': '読み込み中...', 'detail.unavailable': '利用不可', 'detail.notFound': 'コインが見つかりません。', 'info.title': 'Q-Day を理解する', 'qday.title': 'Q-Day · 量子宇宙', 'contact.title': 'お問い合わせ', 'contact.role': 'パネル開発者', 'contact.send': 'メールを送信', 'contact.note': 'ご質問、ご提案、訂正、パートナーシップについては、メールでお問い合わせください。', 'lang.title': '言語を選択', 'bolha.title': 'バブル', 'bolha.subtitle': '各コインはバブル · 緑 = 買い手 · 赤 = 売り手', 'bolha.back': 'Q-Day温度計に戻る', 'bolha.loading': 'バブルを読み込み中...', 'bolha.price': '価格', 'bolha.change': '24時間変動', 'galaxia.title': '銀河', 'galaxia.subtitle': '各コインは太陽(最高出来高×時価総額)の周りを回る · サイズ = 24時間出来高', 'galaxia.back': 'Q-Day温度計に戻る', 'galaxia.loading': '銀河を形成中...', 'galaxia.legend.sun': '太陽 (最高出来高×時価総額)', 'galaxia.legend.giant': '巨星', 'galaxia.legend.planet': '惑星', 'galaxia.legend.moon': '衛星', 'galaxia.tooltip.sun': '☀️ 太陽', 'galaxia.tooltip.class': 'クラス', 'galaxia.tooltip.giant': '巨星', 'galaxia.tooltip.planet': '惑星', 'galaxia.tooltip.moon': '衛星', 'galaxia.tooltip.rank': 'ランキング' }
+  };
+
+  const LANG_KEY = 'qday_lang_v11';
+  let currentLang = 'pt';
+  const t = (key) => { const dict = I18N[currentLang] || I18N.pt; return dict[key] ?? (I18N.pt[key] ?? key); };
+
+  const renderInfoModalBody = () => {
+    const el = document.getElementById('infoModalBody');
+    if (!el) return;
+    const L = currentLang;
+    const html = {
+      pt: `<div class="modal-section"><h3><span class="ico">⚛️</span> O que é Computação Quântica?</h3><p>Computadores quânticos usam <strong>qubits</strong>, que podem existir em múltiplos estados ao mesmo tempo (superposição) e se entrelaçar (emaranhamento). Isso permite resolver em horas problemas que levariam <em>milhares de anos</em> em computadores clássicos.</p><p>Algoritmos como o de <strong>Shor</strong> (fatoração) ameaçam diretamente o <em>RSA</em> e o <em>ECC</em>.</p></div><div class="modal-section"><h3><span class="ico">💀</span> O que é o "Q-Day"?</h3><p>É o dia em que um computador quântico conseguirá quebrar a criptografia de chave pública amplamente usada hoje. A estimativa varia entre <strong>2030 e 2040</strong>.</p></div><div class="modal-callout"><strong>⚠️ Alerta:</strong> proteger-se não é sobre o "hoje" — é sobre garantir que as informações de hoje continuem seguras em 2035.</div><div class="modal-section"><h3><span class="ico">🛡️</span> O que é Criptografia Pós-Quântica (PQC)?</h3><p>Nova geração de algoritmos. O <strong>NIST</strong> já padronizou em 2024: ML-KEM, ML-DSA, SLH-DSA, FN-DSA.</p></div><div class="modal-section" style="border-top:1px solid rgba(255,255,255,.08); padding-top:16px; margin-top:24px;"><p style="font-size:0.8rem; color: var(--text2); text-align:center;">Dados fornecidos pela API pública da <strong style="color:#58a6ff">CoinGecko</strong> · Este painel é informativo e não constitui recomendação de investimento.</p></div>`,
+      'pt-PT': `<div class="modal-section"><h3><span class="ico">⚛️</span> O que é a Computação Quântica?</h3><p>Os computadores quânticos utilizam <strong>qubits</strong>, que podem existir em múltiplos estados ao mesmo tempo.</p></div><div class="modal-section"><h3><span class="ico">💀</span> O que é o "Q-Day"?</h3><p>É o dia em que um computador quântico conseguirá quebrar a criptografia de chave pública.</p></div><div class="modal-callout"><strong>⚠️ Aviso:</strong> proteger-se agora garante que as informações continuem seguras no futuro.</div><div class="modal-section"><h3><span class="ico">🛡️</span> O que é Criptografia Pós-Quântica (PQC)?</h3><p>Nova geração de algoritmos. O <strong>NIST</strong> padronizou em 2024: ML-KEM, ML-DSA, SLH-DSA, FN-DSA.</p></div><div class="modal-section" style="border-top:1px solid rgba(255,255,255,.08); padding-top:16px; margin-top:24px;"><p style="font-size:0.8rem; color: var(--text2); text-align:center;">Dados da API pública da <strong style="color:#58a6ff">CoinGecko</strong> · Painel informativo.</p></div>`,
+      en: `<div class="modal-section"><h3><span class="ico">⚛️</span> What is Quantum Computing?</h3><p>Quantum computers use <strong>qubits</strong>, which can exist in multiple states simultaneously (superposition) and become entangled.</p></div><div class="modal-section"><h3><span class="ico">💀</span> What is "Q-Day"?</h3><p>It is the day when a quantum computer will break public-key cryptography. Experts estimate between <strong>2030 and 2040</strong>.</p></div><div class="modal-callout"><strong>⚠️ Warning:</strong> protecting yourself now ensures today's information remains secure in the future.</div><div class="modal-section"><h3><span class="ico">🛡️</span> What is Post-Quantum Cryptography (PQC)?</h3><p>New generation of algorithms. <strong>NIST</strong> standardized in 2024: ML-KEM, ML-DSA, SLH-DSA, FN-DSA.</p></div><div class="modal-section" style="border-top:1px solid rgba(255,255,255,.08); padding-top:16px; margin-top:24px;"><p style="font-size:0.8rem; color: var(--text2); text-align:center;">Data provided by <strong style="color:#58a6ff">CoinGecko</strong> · Informational panel.</p></div>`,
+      es: `<div class="modal-section"><h3><span class="ico">⚛️</span> ¿Qué es la Computación Cuántica?</h3><p>Las computadoras cuánticas usan <strong>qubits</strong>, que pueden existir en múltiples estados a la vez.</p></div><div class="modal-section"><h3><span class="ico">💀</span> ¿Qué es el "Q-Day"?</h3><p>Es el día en que una computadora cuántica romperá la criptografía de clave pública.</p></div><div class="modal-callout"><strong>⚠️ Alerta:</strong> protegerte ahora asegura que la información siga segura en el futuro.</div><div class="modal-section"><h3><span class="ico">🛡️</span> ¿Qué es la Criptografía Post-Cuántica (PQC)?</h3><p>Nueva generación de algoritmos. El <strong>NIST</strong> estandarizó en 2024: ML-KEM, ML-DSA, SLH-DSA, FN-DSA.</p></div><div class="modal-section" style="border-top:1px solid rgba(255,255,255,.08); padding-top:16px; margin-top:24px;"><p style="font-size:0.8rem; color: var(--text2); text-align:center;">Datos de <strong style="color:#58a6ff">CoinGecko</strong> · Panel informativo.</p></div>`,
+      fr: `<div class="modal-section"><h3><span class="ico">⚛️</span> Qu'est-ce que l'Informatique Quantique ?</h3><p>Les ordinateurs quantiques utilisent des <strong>qubits</strong>, qui peuvent exister dans plusieurs états simultanément.</p></div><div class="modal-section"><h3><span class="ico">💀</span> Qu'est-ce que le "Q-Day" ?</h3><p>C'est le jour où un ordinateur quantique cassera la cryptographie à clé publique.</p></div><div class="modal-callout"><strong>⚠️ Alerte :</strong> se protéger maintenant garantit la sécurité future des informations.</div><div class="modal-section"><h3><span class="ico">🛡️</span> Qu'est-ce que la Cryptographie Post-Quantique (PQC) ?</h3><p>Nouvelle génération d'algorithmes. Le <strong>NIST</strong> a standardisé en 2024 : ML-KEM, ML-DSA, SLH-DSA, FN-DSA.</p></div><div class="modal-section" style="border-top:1px solid rgba(255,255,255,.08); padding-top:16px; margin-top:24px;"><p style="font-size:0.8rem; color: var(--text2); text-align:center;">Données <strong style="color:#58a6ff">CoinGecko</strong> · Panneau informatif.</p></div>`,
+      ar: `<div class="modal-section"><h3><span class="ico">⚛️</span> ما هي الحوسبة الكمية؟</h3><p>تستخدم أجهزة الكمبيوتر الكمية <strong>الكيوبتات</strong>، التي يمكن أن توجد في حالات متعددة في وقت واحد.</p></div><div class="modal-section"><h3><span class="ico">💀</span> ما هو "Q-Day"؟</h3><p>هو اليوم الذي سيتمكن فيه كمبيوتر كمي من كسر التشفير بالمفتاح العام.</p></div><div class="modal-callout"><strong>⚠️ تحذير:</strong> حماية نفسك الآن تضمن بقاء معلومات اليوم آمنة في المستقبل.</div><div class="modal-section"><h3><span class="ico">🛡️</span> ما هو التشفير ما بعد الكمي (PQC)؟</h3><p>جيل جديد من الخوارزميات. وحدها <strong>NIST</strong> في 2024: ML-KEM، ML-DSA، SLH-DSA، FN-DSA.</p></div><div class="modal-section" style="border-top:1px solid rgba(255,255,255,.08); padding-top:16px; margin-top:24px;"><p style="font-size:0.8rem; color: var(--text2); text-align:center;">البيانات من <strong style="color:#58a6ff">CoinGecko</strong> · لوحة إعلامية.</p></div>`,
+      ja: `<div class="modal-section"><h3><span class="ico">⚛️</span> 量子コンピューティングとは?</h3><p>量子コンピュータは<strong>量子ビット</strong>を使用し、同時に複数の状態を取ることができます。</p></div><div class="modal-section"><h3><span class="ico">💀</span> "Q-Day"とは?</h3><p>量子コンピュータが公開鍵暗号を破る日です。専門家は<strong>2030〜2040年</strong>と推定しています。</p></div><div class="modal-callout"><strong>⚠️ 警告:</strong> 今守ることが将来の情報の安全を確保します。</div><div class="modal-section"><h3><span class="ico">🛡️</span> ポスト量子暗号(PQC)とは?</h3><p>新世代のアルゴリズム。<strong>NIST</strong>は2024年に標準化: ML-KEM、ML-DSA、SLH-DSA、FN-DSA。</p></div><div class="modal-section" style="border-top:1px solid rgba(255,255,255,.08); padding-top:16px; margin-top:24px;"><p style="font-size:0.8rem; color: var(--text2); text-align:center;">データ提供: <strong style="color:#58a6ff">CoinGecko</strong> · 情報パネル。</p></div>`
+    };
+    el.innerHTML = html[L] || html.pt;
+  };
+
+  const renderQdayInfoModalBody = () => {
+    const el = document.getElementById('qdayInfoModalBody');
+    if (!el) return;
+    const L = currentLang;
+    const commonHero = `<div class="qday-hero" aria-hidden="true"><svg viewBox="0 0 420 200" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="qGlow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#d2a8ff" stop-opacity="0.9"/><stop offset="60%" stop-color="#bc8cff" stop-opacity="0.25"/><stop offset="100%" stop-color="#bc8cff" stop-opacity="0"/></radialGradient><linearGradient id="qChip" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2a3241"/><stop offset="50%" stop-color="#151a24"/><stop offset="100%" stop-color="#0b0e14"/></linearGradient><linearGradient id="qWire" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#bc8cff"/><stop offset="100%" stop-color="#58a6ff"/></linearGradient></defs><circle cx="210" cy="100" r="95" fill="url(#qGlow)"/><rect x="110" y="130" width="200" height="46" rx="8" fill="url(#qChip)" stroke="#3d2f5c" stroke-width="1.5"/><rect x="120" y="138" width="180" height="4" rx="2" fill="#bc8cff" opacity="0.45"/><rect x="120" y="148" width="120" height="3" rx="1.5" fill="#58a6ff" opacity="0.4"/><rect x="120" y="156" width="150" height="3" rx="1.5" fill="#ff8a65" opacity="0.35"/><path d="M150 130 L150 92 Q210 52 270 92 L270 130" fill="none" stroke="url(#qWire)" stroke-width="2" opacity="0.8"/><circle cx="210" cy="52" r="8" fill="none" stroke="#d2a8ff" stroke-width="1.5"/><circle cx="210" cy="52" r="4" fill="#d2a8ff"/><text x="210" y="118" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="9" font-weight="700" fill="#d2a8ff" letter-spacing="1.5" opacity="0.9">QUANTUM PROCESSOR</text></svg><div class="qday-hero-caption">⚛️</div><div class="qubit-chip" aria-hidden="true"><span class="qubit-dot"></span><span class="qubit-dot"></span><span class="qubit-dot"></span><span class="qubit-dot"></span><span class="qubit-dot"></span></div></div>`;
+    const html = {
+      pt: commonHero + `<div class="qday-disclaimer"><div class="qday-disclaimer-title"><span class="ico">📚</span><span>Conteúdo Educacional</span></div><p>Este site tem <strong>caráter exclusivamente educacional e informativo</strong>. Ele <strong>não é uma recomendação de investimento</strong>.</p></div><div class="qday-points"><div class="qday-point"><span class="qday-point-ico">🔬</span><div class="qday-point-title">Ciência em Primeiro Lugar</div><div class="qday-point-desc">Entenda superposição, emaranhamento e algoritmos quânticos.</div></div><div class="qday-point"><span class="qday-point-ico">🛡️</span><div class="qday-point-title">Criptografia Pós-Quântica</div><div class="qday-point-desc">Conheça os algoritmos que o NIST padronizou.</div></div><div class="qday-point"><span class="qday-point-ico">📊</span><div class="qday-point-title">Dados de Mercado</div><div class="qday-point-desc">Acompanhe preços e volumes pela API da CoinGecko.</div></div><div class="qday-point"><span class="qday-point-ico">⚖️</span><div class="qday-point-title">Sem Recomendação</div><div class="qday-point-desc">Nada aqui é conselho financeiro.</div></div></div><div class="qday-research-note">🔎 <strong>Faça sua própria pesquisa (DYOR).</strong></div>`,
+      'pt-PT': commonHero + `<div class="qday-disclaimer"><div class="qday-disclaimer-title"><span class="ico">📚</span><span>Conteúdo Educativo</span></div><p>Este site tem <strong>caráter exclusivamente educacional e informativo</strong>.</p></div><div class="qday-points"><div class="qday-point"><span class="qday-point-ico">🔬</span><div class="qday-point-title">Ciência em Primeiro Lugar</div><div class="qday-point-desc">Compreenda sobreposição, emaranhamento e algoritmos quânticos.</div></div><div class="qday-point"><span class="qday-point-ico">🛡️</span><div class="qday-point-title">Criptografia Pós-Quântica</div><div class="qday-point-desc">Conheça os algoritmos do NIST.</div></div><div class="qday-point"><span class="qday-point-ico">📊</span><div class="qday-point-title">Dados de Mercado</div><div class="qday-point-desc">Acompanhe pela API da CoinGecko.</div></div><div class="qday-point"><span class="qday-point-ico">⚖️</span><div class="qday-point-title">Sem Recomendação</div><div class="qday-point-desc">Nada aqui é aconselhamento financeiro.</div></div></div><div class="qday-research-note">🔎 <strong>Faça a sua própria pesquisa (DYOR).</strong></div>`,
+      en: commonHero + `<div class="qday-disclaimer"><div class="qday-disclaimer-title"><span class="ico">📚</span><span>Educational Content</span></div><p>This site is <strong>strictly educational and informational</strong>.</p></div><div class="qday-points"><div class="qday-point"><span class="qday-point-ico">🔬</span><div class="qday-point-title">Science First</div><div class="qday-point-desc">Understand superposition, entanglement and quantum algorithms.</div></div><div class="qday-point"><span class="qday-point-ico">🛡️</span><div class="qday-point-title">Post-Quantum Crypto</div><div class="qday-point-desc">Learn the algorithms NIST standardized.</div></div><div class="qday-point"><span class="qday-point-ico">📊</span><div class="qday-point-title">Market Data</div><div class="qday-point-desc">Track prices via CoinGecko API.</div></div><div class="qday-point"><span class="qday-point-ico">⚖️</span><div class="qday-point-title">No Recommendation</div><div class="qday-point-desc">Nothing here is financial advice.</div></div></div><div class="qday-research-note">🔎 <strong>Do Your Own Research (DYOR).</strong></div>`,
+      es: commonHero + `<div class="qday-disclaimer"><div class="qday-disclaimer-title"><span class="ico">📚</span><span>Contenido Educativo</span></div><p>Este sitio es <strong>estrictamente educativo e informativo</strong>.</p></div><div class="qday-points"><div class="qday-point"><span class="qday-point-ico">🔬</span><div class="qday-point-title">Ciencia Primero</div><div class="qday-point-desc">Comprende superposición, entrelazamiento y algoritmos cuánticos.</div></div><div class="qday-point"><span class="qday-point-ico">🛡️</span><div class="qday-point-title">Cripto Post-Cuántica</div><div class="qday-point-desc">Conoce los algoritmos del NIST.</div></div><div class="qday-point"><span class="qday-point-ico">📊</span><div class="qday-point-title">Datos de Mercado</div><div class="qday-point-desc">Sigue con la API de CoinGecko.</div></div><div class="qday-point"><span class="qday-point-ico">⚖️</span><div class="qday-point-title">Sin Recomendación</div><div class="qday-point-desc">Nada aquí es consejo financiero.</div></div></div><div class="qday-research-note">🔎 <strong>Haz tu propia investigación (DYOR).</strong></div>`,
+      fr: commonHero + `<div class="qday-disclaimer"><div class="qday-disclaimer-title"><span class="ico">📚</span><span>Contenu Éducatif</span></div><p>Ce site est <strong>strictement éducatif et informatif</strong>.</p></div><div class="qday-points"><div class="qday-point"><span class="qday-point-ico">🔬</span><div class="qday-point-title">La Science d'Abord</div><div class="qday-point-desc">Comprenez la superposition et les algorithmes quantiques.</div></div><div class="qday-point"><span class="qday-point-ico">🛡️</span><div class="qday-point-title">Crypto Post-Quantique</div><div class="qday-point-desc">Découvrez les algorithmes du NIST.</div></div><div class="qday-point"><span class="qday-point-ico">📊</span><div class="qday-point-title">Données de Marché</div><div class="qday-point-desc">Suivez via l'API CoinGecko.</div></div><div class="qday-point"><span class="qday-point-ico">⚖️</span><div class="qday-point-title">Sans Recommandation</div><div class="qday-point-desc">Rien ici n'est un conseil financier.</div></div></div><div class="qday-research-note">🔎 <strong>Faites vos propres recherches (DYOR).</strong></div>`,
+      ar: commonHero + `<div class="qday-disclaimer"><div class="qday-disclaimer-title"><span class="ico">📚</span><span>محتوى تعليمي</span></div><p>هذا الموقع <strong>تعليمي ومعلوماتي فقط</strong>.</p></div><div class="qday-points"><div class="qday-point"><span class="qday-point-ico">🔬</span><div class="qday-point-title">العلم أولاً</div><div class="qday-point-desc">افهم التراكب والتشابك والخوارزميات الكمية.</div></div><div class="qday-point"><span class="qday-point-ico">🛡️</span><div class="qday-point-title">تشفير ما بعد الكم</div><div class="qday-point-desc">تعرف على خوارزميات NIST.</div></div><div class="qday-point"><span class="qday-point-ico">📊</span><div class="qday-point-title">بيانات السوق</div><div class="qday-point-desc">تتبع عبر واجهة CoinGecko.</div></div><div class="qday-point"><span class="qday-point-ico">⚖️</span><div class="qday-point-title">بدون توصية</div><div class="qday-point-desc">لا شيء هنا نصيحة مالية.</div></div></div><div class="qday-research-note">🔎 <strong>قم بإجراء بحثك الخاص (DYOR).</strong></div>`,
+      ja: commonHero + `<div class="qday-disclaimer"><div class="qday-disclaimer-title"><span class="ico">📚</span><span>教育コンテンツ</span></div><p>このサイトは<strong>教育・情報提供のみ</strong>を目的としています。</p></div><div class="qday-points"><div class="qday-point"><span class="qday-point-ico">🔬</span><div class="qday-point-title">科学優先</div><div class="qday-point-desc">重ね合わせ、もつれ、量子アルゴリズムを理解する。</div></div><div class="qday-point"><span class="qday-point-ico">🛡️</span><div class="qday-point-title">ポスト量子暗号</div><div class="qday-point-desc">NISTが標準化したアルゴリズム。</div></div><div class="qday-point"><span class="qday-point-ico">📊</span><div class="qday-point-title">市場データ</div><div class="qday-point-desc">CoinGecko APIで追跡。</div></div><div class="qday-point"><span class="qday-point-ico">⚖️</span><div class="qday-point-title">推奨なし</div><div class="qday-point-desc">ここには財務アドバイスはありません。</div></div></div><div class="qday-research-note">🔎 <strong>ご自身で調査してください (DYOR)。</strong></div>`
+    };
+    el.innerHTML = html[L] || html.pt;
+  };
+
+  const renderContactNote = () => {
+    const el = document.getElementById('contactNote');
+    if (!el) return;
+    const siteName = { pt: 'Termômetro Q-Day', 'pt-PT': 'Termómetro Q-Day', en: 'Q-Day Thermometer', es: 'Termómetro Q-Day', fr: 'Thermomètre Q-Day', ar: 'مقياس Q-Day', ja: 'Q-Day温度計' }[currentLang] || 'Termômetro Q-Day';
+    el.innerHTML = `<strong>${siteName}</strong><br>${t('contact.note')}`;
+  };
+
+  const applyI18n = () => {
+    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder'))); });
+    const langMap = { pt: 'pt-BR', 'pt-PT': 'pt-PT', en: 'en', es: 'es', fr: 'fr', ar: 'ar', ja: 'ja' };
+    document.documentElement.setAttribute('lang', langMap[currentLang] || 'pt-BR');
+    document.documentElement.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
+    renderInfoModalBody();
+    renderQdayInfoModalBody();
+    renderContactNote();
+    if (activeView === 'bolha') renderBolha();
+    if (activeView === 'galaxia') renderGalaxia();
+  };
+
+  const saveLang = (lang) => { try { localStorage.setItem(LANG_KEY, lang); } catch {} };
+  const loadLang = () => { try { const s = localStorage.getItem(LANG_KEY); if (s && I18N[s]) return s; } catch {} return 'pt'; };
+
+  // Estrelas do fundo
+  const bigStarsContainer = document.getElementById('big-stars-container');
+  const smallStarsContainer = document.getElementById('small-stars-container');
+  const bigStars = [
+    { top: '15%', left: '10%', size: '4px', color: 'blue-glow', speed: 'pulse-slow' },
+    { top: '60%', left: '15%', size: '5px', color: 'pink-glow', speed: 'pulse-fast' },
+    { top: '80%', left: '80%', size: '4px', color: 'blue-glow', speed: 'pulse-slow' },
+    { top: '30%', left: '85%', size: '6px', color: 'blue-glow', speed: 'pulse-fast' },
+    { top: '45%', left: '45%', size: '3px', color: 'blue-glow', speed: 'pulse-slow' }
+  ];
+  let bigHTML = '';
+  bigStars.forEach(star => { bigHTML += `<div class="big-star ${star.color} ${star.speed}" style="top:${star.top};left:${star.left};width:${star.size};height:${star.size};"></div>`; });
+  bigStarsContainer.innerHTML = bigHTML;
+  let smallHTML = '';
+  for (let i = 0; i < 120; i++) {
+    const size = Math.random() * 1.5 + 0.5;
+    const x = Math.random() * 100, y = Math.random() * 100;
+    const duration = Math.random() * 4 + 2, delay = Math.random() * 5;
+    smallHTML += `<div class="small-star" style="width:${size}px;height:${size}px;left:${x}%;top:${y}%;animation-duration:${duration}s;animation-delay:-${delay}s;"></div>`;
+  }
+  smallStarsContainer.innerHTML = smallHTML;
+
+  const CONFIG = {
+    API: 'https://api.coingecko.com/api/v3',
+    CAT: 'quantum-resistant',
+    REFRESH: 60_000,
+    CACHE_KEY: 'qday_cache_v31',
+    CACHE_TTL: 60_000
+  };
+
+  const LAUNCH_YEARS = {
+    'quantum-resistant-ledger': 2018, 'zcash': 2016, 'algorand': 2019, 'starknet': 2024,
+    'qubic': 2022, 'qanplatform': 2021, 'nervos-network': 2019, 'naoris-protocol': 2024, 'abelian': 2023
+  };
+  const COIN_TAGS = {
+    'quantum-resistant-ledger': { pqc: true, privacy: false }, 'zcash': { pqc: false, privacy: true },
+    'algorand': { pqc: true, privacy: false }, 'starknet': { pqc: true, privacy: false },
+    'qubic': { pqc: false, privacy: false }, 'qanplatform': { pqc: true, privacy: false },
+    'nervos-network': { pqc: false, privacy: false }, 'naoris-protocol': { pqc: false, privacy: false },
+    'abelian': { pqc: true, privacy: true }
+  };
+
+  const $ = id => document.getElementById(id);
+  const qdayView = $('qdayView'), bolhaView = $('bolhaView'), galaxiaView = $('galaxiaView');
+  const detailView = $('detailView'), detailContent = $('detailContent');
+  const gridEl = $('grid'), featuredEl = $('featured'), featuredGrid = $('featuredGrid'), lastUpdate = $('lastUpdate');
+  const oldestSection = $('oldestSection'), oldestGrid = $('oldestGrid');
+  const filterInput = $('filterInput'), filterClear = $('filterClear'), filterCount = $('filterCount');
+  const bolhaContainer = $('bolhaContainer'), bolhaTooltip = $('bolhaTooltip'), lastUpdateBolha = $('lastUpdateBolha');
+  const galaxiaContainer = $('galaxiaContainer'), galaxiaTooltip = $('galaxiaTooltip'), lastUpdateGalaxia = $('lastUpdateGalaxia');
+
+  let coinsCache = [], trendingCache = [], viewedIdCache = null;
+  let currentFilter = '', currentCoinId = null;
+  let isLoading = false, refreshTimer = null, abortController = null, filterDebounceTimer = null;
+  let activeView = 'qday', bolhaAnimFrame = null, galaxiaAnimFrame = null;
+
+  const num = v => typeof v === 'number' && isFinite(v);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const fmtPrice = p => {
+    if (!num(p)) return '—';
+    if (p === 0) return '$0.00';
+    const a = Math.abs(p);
+    const d = a >= 1 ? 2 : a >= 0.01 ? 4 : a >= 0.0001 ? 6 : a >= 0.000001 ? 8 : a >= 1e-8 ? 10 : 12;
+    try { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: d }).format(p); } catch { return '—'; }
+  };
+  const compact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 2 });
+  const fullUsd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+  const supplyC = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 });
+  const supplyF = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  const fmtCompact = v => num(v) ? compact.format(v) : '—';
+  const fmtSupply = (v, s) => !num(v) ? '—' : `${supplyC.format(v)} ${(s || '').toUpperCase()}`.trim();
+  const fmtSupplyFull = (v, s) => !num(v) ? '' : `${supplyF.format(v)} ${(s || '').toUpperCase()}`.trim();
+
+  const getState = c => {
+    const ch = c.price_change_percentage_24h_in_currency;
+    if (!num(ch)) return { cls: 'neutral', label: t('state.neutral') };
+    if (ch > 0) return { cls: 'buyer', label: t('state.buyer') };
+    if (ch < 0) return { cls: 'seller', label: t('state.seller') };
+    return { cls: 'neutral', label: t('state.neutral') };
+  };
+  const getLaunchYear = (coin) => LAUNCH_YEARS[coin.id] || null;
+  const getTags = (coin) => COIN_TAGS[coin.id] || { pqc: false, privacy: false };
+
+  const renderTagsHTML = (coin) => {
+    const tags = getTags(coin);
+    const parts = [];
+    if (tags.pqc) parts.push(`<span class="coin-tag pqc"><span class="coin-tag-icon">🛡️</span> ${t('tag.pqc')}</span>`);
+    if (tags.privacy) parts.push(`<span class="coin-tag privacy"><span class="coin-tag-icon">🔒</span> ${t('tag.privacy')}</span>`);
+    return parts.length ? `<div class="coin-tags">${parts.join('')}</div>` : '';
+  };
+
+  const readCache = () => {
+    try { const raw = localStorage.getItem(CONFIG.CACHE_KEY); if (!raw) return null; const obj = JSON.parse(raw); if (Date.now() - obj.ts > CONFIG.CACHE_TTL) return null; return obj; } catch { return null; }
+  };
+  const writeCache = (coins, trending) => {
+    try {
+      const slim = coins.map(c => ({ id: c.id, symbol: c.symbol, name: c.name, image: c.image, current_price: c.current_price, market_cap: c.market_cap, total_volume: c.total_volume, price_change_percentage_24h_in_currency: c.price_change_percentage_24h_in_currency, circulating_supply: c.circulating_supply, total_supply: c.total_supply, max_supply: c.max_supply, fully_diluted_valuation: c.fully_diluted_valuation }));
+      localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify({ ts: Date.now(), coins: slim, trending }));
+    } catch {}
+  };
+
+  const fetchJSON = async (url, signal) => {
+    const r = await fetch(url, { headers: { 'Accept': 'application/json' }, signal });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  };
+  const getCoins = async (signal) => {
+    const url = `${CONFIG.API}/coins/markets?vs_currency=usd&category=${CONFIG.CAT}&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h&precision=full`;
+    const d = await fetchJSON(url, signal);
+    return Array.isArray(d) ? d : [];
+  };
+  const getTrending = async (signal) => {
+    try { const d = await fetchJSON(`${CONFIG.API}/search/trending`, signal); return (d.coins || []).map(c => c.item?.id).filter(Boolean); } catch { return []; }
+  };
+  const getVolume1h = async (id, vol24h, signal) => {
+    const d = await fetchJSON(`${CONFIG.API}/coins/${id}/market_chart?vs_currency=usd&days=1`, signal);
+    const pts = (d.total_volumes || []).filter(p => Array.isArray(p) && num(p[0]) && num(p[1]) && p[1] >= 0);
+    if (pts.length < 2) throw new Error('No data');
+    const sum = pts.reduce((s, [, v]) => s + v, 0);
+    const first = pts[0][1], last = pts[pts.length - 1][1];
+    const lastTs = pts[pts.length - 1][0];
+    const cut = lastTs - 3600_000;
+    const cumulative = num(vol24h) && vol24h > 0 ? sum > vol24h * 2.5 : (last > 0 && first / last < 0.1);
+    let v;
+    if (cumulative) { let ref = null; for (let i = pts.length - 1; i >= 0; i--) { if (pts[i][0] <= cut) { ref = pts[i][1]; break; } } v = ref !== null ? last - ref : pts.filter(([t]) => t >= cut).reduce((s, [, x]) => s + x, 0); }
+    else { v = pts.filter(([t]) => t >= cut).reduce((s, [, x]) => s + x, 0); }
+    if (!num(v) || v < 0) v = 0;
+    if (num(vol24h) && vol24h > 0 && v > vol24h) v = vol24h;
+    return v;
+  };
+
+  const cardHTML = (c, isTop, rank, isViewed) => {
+    const st = getState(c);
+    const priceTitle = num(c.current_price) ? String(c.current_price) : '';
+    const viewBadge = isViewed ? `<span class="view-badge">${t('badge.mostViewed')}</span>` : '';
+    const rankBadge = isTop ? `<span class="rank-badge">${t('rank.' + rank)}</span>` : '';
+    const tagsHTML = renderTagsHTML(c);
+    const cls = [isTop ? 'featured-card rank-' + rank : 'card', isViewed ? 'most-viewed' : ''].filter(Boolean).join(' ');
+    return `
+      <div class="${cls}" data-coin-id="${esc(c.id)}" role="button" tabindex="0" aria-label="${esc(c.name)}">
+        ${viewBadge}${rankBadge}
+        <div class="coin-header">
+          <div class="coin-identity">
+            <img class="coin-logo" src="${esc(c.image)}" alt="${esc(c.name)}" loading="lazy" onerror="this.style.visibility='hidden'">
+            <div class="coin-name"><span class="name">${esc(c.name)}</span><span class="symbol">${esc(c.symbol)}</span></div>
+          </div>
+          <div class="coin-price" title="${esc(priceTitle)}">${fmtPrice(c.current_price)}</div>
+        </div>
+        ${tagsHTML}
+        <div class="vol-row ${st.cls}">
+          <div class="vol-left"><span class="thermo-icon">🌡</span><div><div class="vol-label">${t('vol.24h')}</div><div class="vol-value">${compact.format(num(c.total_volume) ? c.total_volume : 0)}</div></div></div>
+          <div class="vol-right">${st.label}</div>
+        </div>
+      </div>`;
+  };
+
+  const oldestCardHTML = (c, rank) => {
+    const st = getState(c);
+    const priceTitle = num(c.current_price) ? String(c.current_price) : '';
+    const year = getLaunchYear(c);
+    const yearLabel = year ? year : '—';
+    const medals = ['🥇', '🥈', '🥉'];
+    const tagsHTML = renderTagsHTML(c);
+    return `
+      <div class="oldest-card" data-coin-id="${esc(c.id)}" role="button" tabindex="0" aria-label="${esc(c.name)}">
+        <div class="oldest-badge"><span class="ico">${medals[rank - 1]}</span><span>${rank} · ${t('oldest.badge')} ${yearLabel}</span></div>
+        <span class="oldest-year-badge">${yearLabel}</span>
+        <div class="coin-header">
+          <div class="coin-identity">
+            <img class="coin-logo" src="${esc(c.image)}" alt="${esc(c.name)}" loading="lazy" onerror="this.style.visibility='hidden'">
+            <div class="coin-name"><span class="name">${esc(c.name)}</span><span class="symbol">${esc(c.symbol)}</span></div>
+          </div>
+          <div class="coin-price" title="${esc(priceTitle)}">${fmtPrice(c.current_price)}</div>
+        </div>
+        ${tagsHTML}
+        <div class="vol-row ${st.cls}">
+          <div class="vol-left"><span class="thermo-icon">🌡</span><div><div class="vol-label">${t('vol.24h')}</div><div class="vol-value">${compact.format(num(c.total_volume) ? c.total_volume : 0)}</div></div></div>
+          <div class="vol-right">${st.label}</div>
+        </div>
+      </div>`;
+  };
+
+  const normalize = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const filterCoins = (coins, q) => {
+    if (!q) return coins;
+    const nq = normalize(q);
+    return coins.filter(c => normalize(c.name).includes(nq) || normalize(c.symbol).includes(nq) || normalize(c.id).includes(nq));
+  };
+  const updateFilterUI = (total, shown) => {
+    const hasFilter = currentFilter.length > 0;
+    filterClear.classList.toggle('visible', hasFilter);
+    filterCount.classList.toggle('active', hasFilter);
+    if (!hasFilter) filterCount.textContent = '';
+    else filterCount.textContent = `${shown} ${t('filter.count')} ${total}`;
+  };
+  const renderAll = () => {
+    const coins = coinsCache, viewedId = viewedIdCache, hasFilter = currentFilter.length > 0;
+    const top3 = [...coins].filter(c => num(c.total_volume) && c.total_volume > 0).sort((a, b) => b.total_volume - a.total_volume).slice(0, 3);
+    const withYear = coins.map(c => ({ coin: c, year: getLaunchYear(c) })).filter(x => x.year !== null).sort((a, b) => a.year - b.year);
+    const oldest3 = withYear.slice(0, 3).map(x => x.coin);
+    const filtered = filterCoins(coins, currentFilter);
+    if (top3.length && !hasFilter) { featuredGrid.innerHTML = top3.map((c, i) => cardHTML(c, true, i + 1, c.id === viewedId)).join(''); featuredEl.classList.add('visible'); }
+    else { featuredEl.classList.remove('visible'); featuredGrid.innerHTML = ''; }
+    if (oldest3.length && !hasFilter) { oldestGrid.innerHTML = oldest3.map((c, i) => oldestCardHTML(c, i + 1)).join(''); oldestSection.classList.add('visible'); }
+    else { oldestSection.classList.remove('visible'); oldestGrid.innerHTML = ''; }
+    if (!coins.length) gridEl.innerHTML = `<div class="error">${t('error.noCoins')}</div>`;
+    else if (!filtered.length) gridEl.innerHTML = `<div class="filter-empty">${t('filter.empty')} <strong>"${esc(currentFilter)}"</strong>.<br>${t('filter.tryOther')}</div>`;
+    else gridEl.innerHTML = filtered.map(c => cardHTML(c, false, 0, c.id === viewedId)).join('');
+    updateFilterUI(coins.length, filtered.length);
+  };
+  const applyFilter = (value) => { currentFilter = String(value || ''); renderAll(); };
+
+  filterInput.addEventListener('input', (e) => {
+    const val = e.target.value;
+    filterClear.classList.toggle('visible', val.length > 0);
+    clearTimeout(filterDebounceTimer);
+    filterDebounceTimer = setTimeout(() => applyFilter(val), 120);
+  });
+  filterClear.addEventListener('click', () => { filterInput.value = ''; filterInput.focus(); filterClear.classList.remove('visible'); applyFilter(''); });
+  filterInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') { filterInput.value = ''; filterClear.classList.remove('visible'); applyFilter(''); filterInput.blur(); } });
+
+  const coingeckoSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>`;
+  const coingeckoLinkHTML = (coin) => {
+    const url = `https://www.coingecko.com/en/coins/${encodeURIComponent(coin.id)}`;
+    return `<a class="coingecko-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer"><div class="coingecko-link-left"><span class="coingecko-icon">${coingeckoSVG}</span><div class="coingecko-text"><span class="coingecko-label">${t('coingecko.view')}</span><span class="coingecko-name">${esc(coin.name)} <span style="color:var(--text2);font-weight:500;text-transform:uppercase;font-size:.7rem">${esc(coin.symbol)}</span></span></div></div><span class="coingecko-arrow">↗</span></a>`;
+  };
+
+  const renderDetail = async id => {
+    const coin = coinsCache.find(c => c.id === id);
+    if (!coin) { detailContent.innerHTML = `<div class="error">${t('detail.notFound')}</div>`; return; }
+    const isSameCoin = detailContent.querySelector('.detail-header') && currentCoinId === id;
+    const st = getState(coin);
+    const priceTitle = num(coin.current_price) ? String(coin.current_price) : '';
+    const launchYear = getLaunchYear(coin);
+    const tags = getTags(coin);
+    const row = (l, v, s = '') => `<tr><td class="lbl">${l}</td><td class="val"><div>${v}</div>${s ? `<div class="sub">${s}</div>` : ''}</td></tr>`;
+    const sRow = (l, v) => !num(v) ? row(l, '—') : row(l, fmtSupply(v, coin.symbol), fmtSupplyFull(v, coin.symbol));
+    const yearRow = launchYear ? row(t('label.launchYear'), String(launchYear)) : '';
+    let tagRow = '';
+    if (tags.pqc || tags.privacy) {
+      const tagParts = [];
+      if (tags.pqc) tagParts.push(`<span class="coin-tag pqc"><span class="coin-tag-icon">🛡️</span> ${t('tag.pqc')}</span>`);
+      if (tags.privacy) tagParts.push(`<span class="coin-tag privacy"><span class="coin-tag-icon">🔒</span> ${t('tag.privacy')}</span>`);
+      tagRow = `<tr><td class="lbl">${t('label.category')}</td><td class="val"><div class="detail-tags" style="justify-content:flex-end">${tagParts.join('')}</div></td></tr>`;
+    }
+    const tableHTML = `<table class="stats"><tbody>${tagRow}${yearRow}${row(t('label.cap'), fmtCompact(coin.market_cap), num(coin.market_cap) ? fullUsd.format(coin.market_cap) : '')}${row(t('vol.24h'), fmtCompact(coin.total_volume), num(coin.total_volume) ? fullUsd.format(coin.total_volume) : '')}<tr><td class="lbl">${t('vol.1h')}</td><td class="val" id="vol1h"><div>${t('detail.loading')}</div></td></tr>${sRow(t('label.supplyCirculating'), coin.circulating_supply)}${sRow(t('label.supplyTotal'), coin.total_supply)}${sRow(t('label.supplyMax'), coin.max_supply)}${row(t('label.fdv'), fmtCompact(coin.fully_diluted_valuation), num(coin.fully_diluted_valuation) ? fullUsd.format(coin.fully_diluted_valuation) : '')}</tbody></table>`;
+    const linkHTML = coingeckoLinkHTML(coin);
+    if (isSameCoin) {
+      const header = detailContent.querySelector('.detail-header');
+      if (header) {
+        const priceEl = header.querySelector('.detail-price');
+        if (priceEl) { priceEl.innerHTML = fmtPrice(coin.current_price); priceEl.title = priceTitle; }
+        const statusEl = header.querySelector('.detail-status');
+        if (statusEl) { statusEl.className = `detail-status ${st.cls}`; statusEl.innerHTML = `🌡 ${st.label}`; }
+      }
+      const tableContainer = detailContent.querySelector('table.stats');
+      if (tableContainer) tableContainer.outerHTML = tableHTML;
+      let linkEl = detailContent.querySelector('.coingecko-link');
+      if (linkEl) linkEl.outerHTML = linkHTML;
+      else { const t2 = detailContent.querySelector('table.stats'); if (t2) t2.insertAdjacentHTML('afterend', linkHTML); }
+    } else {
+      detailContent.innerHTML = `<div class="detail-header"><img class="detail-logo" src="${esc(coin.image)}" alt="${esc(coin.name)}" onerror="this.style.visibility='hidden'"><div class="detail-header-text"><div class="detail-title-row"><span class="detail-name">${esc(coin.name)}</span><span class="detail-symbol">${esc(coin.symbol)}</span></div><div class="detail-price" title="${esc(priceTitle)}">${fmtPrice(coin.current_price)}</div><div class="detail-status ${st.cls}">🌡 ${st.label}</div></div></div>${tableHTML}${linkHTML}`;
+    }
+    const volController = new AbortController();
+    try {
+      const v = await getVolume1h(id, coin.total_volume, volController.signal);
+      if (currentCoinId !== id || volController.signal.aborted) return;
+      const el = document.getElementById('vol1h');
+      if (el) el.innerHTML = `<div>${fmtCompact(v)}</div>${v > 0 ? `<div class="sub">${fullUsd.format(v)}</div>` : ''}`;
+    } catch (err) {
+      if (volController.signal.aborted || currentCoinId !== id) return;
+      const el = document.getElementById('vol1h');
+      if (el) el.innerHTML = `<div>—</div><div class="sub">${t('detail.unavailable')}</div>`;
+    }
+  };
+
+  const showDetail = async id => {
+    qdayView.style.display = 'none'; bolhaView.style.display = 'none'; galaxiaView.style.display = 'none';
+    detailView.classList.add('visible');
+    window.scrollTo({ top: 0 });
+    if (currentCoinId !== id) {
+      detailContent.innerHTML = `<div class="loading"><div class="spinner"></div><div>${t('detail.loading')}</div></div>`;
+      currentCoinId = id;
+    }
+    await renderDetail(id);
+  };
+  const showView = (view) => {
+    activeView = view;
+    detailView.classList.remove('visible');
+    currentCoinId = null;
+    qdayView.style.display = 'none'; bolhaView.style.display = 'none'; galaxiaView.style.display = 'none';
+    if (view === 'qday') qdayView.style.display = '';
+    else if (view === 'bolha') { bolhaView.style.display = ''; renderBolha(); }
+    else if (view === 'galaxia') { galaxiaView.style.display = ''; renderGalaxia(); }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const handleCardActivate = (e) => {
+    if (e.target.closest('.coingecko-link')) return;
+    const card = e.target.closest('[data-coin-id]');
+    if (!card || detailView.contains(card) || bolhaContainer.contains(card) || galaxiaContainer.contains(card)) return;
+    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    location.hash = `coin/${encodeURIComponent(card.getAttribute('data-coin-id'))}`;
+  };
+  document.addEventListener('click', handleCardActivate);
+  document.addEventListener('keydown', handleCardActivate);
+
+  const handleRoute = () => {
+    const h = location.hash || '';
+    if (h.startsWith('#coin/')) { const id = decodeURIComponent(h.slice(6)); if (id) showDetail(id); else showView('qday'); }
+    else if (h === '#bolha') showView('bolha');
+    else if (h === '#galaxia') showView('galaxia');
+    else showView('qday');
+  };
+  window.addEventListener('hashchange', handleRoute);
+  $('backBtn').addEventListener('click', () => { location.hash = ''; });
+  $('backToQdayBtn').addEventListener('click', () => { location.hash = ''; });
+  $('backFromGalaxiaBtn').addEventListener('click', () => { location.hash = ''; });
+  $('bolhaBtn').addEventListener('click', () => { location.hash = '#bolha'; });
+  $('galaxiaBtn').addEventListener('click', () => { location.hash = '#galaxia'; });
+
+  // ================= BOLHAS =================
+  const bolhaBubbles = [];
+  let bolhaAnimationStart = 0;
+  const renderBolha = () => {
+    if (!bolhaContainer) return;
+    const coins = coinsCache;
+    if (!coins.length) { bolhaContainer.innerHTML = `<div class="bolha-empty"><div class="spinner"></div><div>${t('bolha.loading')}</div></div>`; return; }
+    bolhaBubbles.forEach(b => { if (b.animFrame) cancelAnimationFrame(b.animFrame); });
+    bolhaBubbles.length = 0; bolhaContainer.innerHTML = '';
+    const w = bolhaContainer.clientWidth, h = bolhaContainer.clientHeight;
+    if (!w || !h) return;
+    const sorted = [...coins].filter(c => num(c.total_volume) && c.total_volume > 0).sort((a, b) => b.total_volume - a.total_volume);
+    if (!sorted.length) { bolhaContainer.innerHTML = `<div class="bolha-empty">${t('error.noCoins')}</div>`; return; }
+    const maxVol = sorted[0].total_volume, minVol = sorted[sorted.length - 1].total_volume;
+    const logMin = Math.log10(Math.max(minVol, 1)), logMax = Math.log10(Math.max(maxVol, 10));
+    const logRange = logMax - logMin || 1;
+    const maxR = Math.min(w, h) * 0.11, minR = Math.min(w, h) * 0.045;
+    const placed = [], bubbles = [];
+    sorted.forEach((coin) => {
+      const volLog = Math.log10(Math.max(coin.total_volume, 1));
+      const ratio = (volLog - logMin) / logRange;
+      const radius = minR + (maxR - minR) * Math.max(0, Math.min(1, ratio));
+      let x = 0, y = 0, placed_ok = false;
+      const padding = 8;
+      for (let attempt = 0; attempt < 120; attempt++) {
+        x = radius + padding + Math.random() * Math.max(1, (w - 2 * radius - 2 * padding));
+        y = radius + padding + Math.random() * Math.max(1, (h - 2 * radius - 2 * padding));
+        let collision = false;
+        for (const p of placed) { const dx = p.x - x, dy = p.y - y; const dist = Math.sqrt(dx*dx + dy*dy); if (dist < p.r + radius + 4) { collision = true; break; } }
+        if (!collision) { placed_ok = true; break; }
+      }
+      if (!placed_ok) { const cols = Math.max(1, Math.floor(w / (radius * 2 + 8))); const idx = placed.length; x = (idx % cols) * (radius * 2 + 8) + radius + padding; y = Math.floor(idx / cols) * (radius * 2 + 8) + radius + padding; if (y > h - radius) y = h - radius - padding; }
+      placed.push({ x, y, r: radius });
+      const st = getState(coin), stateCls = st.cls;
+      const el = document.createElement('div');
+      el.className = `bolha-item ${stateCls}`;
+      if (radius < 30) el.classList.add('tiny'); else if (radius < 45) el.classList.add('small');
+      el.style.width = `${radius * 2}px`; el.style.height = `${radius * 2}px`;
+      el.style.left = `${x - radius}px`; el.style.top = `${y - radius}px`;
+      el.style.color = stateCls === 'buyer' ? '#56d364' : stateCls === 'seller' ? '#ff6b6b' : '#b0b8c0';
+      el.setAttribute('data-coin-id', coin.id); el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0');
+      el.setAttribute('aria-label', `${coin.name} (${coin.symbol})`);
+      el.innerHTML = `<img class="bolha-logo" src="${esc(coin.image)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"><span class="bolha-name">${esc(coin.name)}</span><span class="bolha-symbol">${esc(coin.symbol)}</span>`;
+      const bubble = { el, coin, radius, stateCls, baseX: x, baseY: y, phase: Math.random() * Math.PI * 2, speed: 0.5 + Math.random() * 0.8, exploding: false };
+      el.addEventListener('mouseenter', () => { if (bubble.exploding) return; el.style.zIndex = 50; el.style.transition = 'transform 0.15s ease-out, box-shadow 0.3s ease'; el.style.transform = 'scale(1.15)'; showTooltip(bubble, el); });
+      el.addEventListener('mouseleave', () => { el.style.zIndex = ''; el.style.transform = 'scale(1)'; hideTooltip(); });
+      el.addEventListener('mousemove', (ev) => { if (!bolhaTooltip.classList.contains('visible')) return; positionTooltip(ev.clientX, ev.clientY); });
+      el.addEventListener('click', (ev) => { ev.stopPropagation(); if (bubble.exploding) return; explodeBubble(bubble); });
+      el.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); if (!bubble.exploding) explodeBubble(bubble); } });
+      bolhaContainer.appendChild(el);
+      bubbles.push(bubble); bolhaBubbles.push(bubble);
+    });
+    bolhaAnimationStart = performance.now();
+    animateBubbles();
+    if (lastUpdateBolha) { const cached = readCache(); const timeStr = cached ? new Date(cached.ts).toLocaleTimeString() : new Date().toLocaleTimeString(); lastUpdateBolha.textContent = `${t('site.updated')} ${timeStr}`; }
+  };
+  const animateBubbles = () => {
+    if (activeView !== 'bolha') return;
+    const now = performance.now(), t0 = (now - bolhaAnimationStart) / 1000;
+    const w = bolhaContainer.clientWidth, h = bolhaContainer.clientHeight;
+    bolhaBubbles.forEach(b => {
+      if (b.exploding) return;
+      const offsetX = Math.sin(t0 * b.speed + b.phase) * 8;
+      const offsetY = Math.cos(t0 * b.speed * 0.8 + b.phase * 1.3) * 6;
+      let nx = b.baseX + offsetX, ny = b.baseY + offsetY;
+      nx = Math.max(b.radius, Math.min(w - b.radius, nx)); ny = Math.max(b.radius, Math.min(h - b.radius, ny));
+      b.el.style.left = `${nx - b.radius}px`; b.el.style.top = `${ny - b.radius}px`;
+    });
+    bolhaAnimFrame = requestAnimationFrame(animateBubbles);
+  };
+  const explodeBubble = (bubble) => {
+    if (bubble.exploding) return;
+    bubble.exploding = true;
+    const el = bubble.el;
+    hideTooltip();
+    const rect = el.getBoundingClientRect(), containerRect = bolhaContainer.getBoundingClientRect();
+    const cx = rect.left - containerRect.left + rect.width / 2, cy = rect.top - containerRect.top + rect.height / 2;
+    const color = bubble.stateCls === 'buyer' ? '#56d364' : bubble.stateCls === 'seller' ? '#ff6b6b' : '#b0b8c0';
+    for (let i = 0; i < 14; i++) {
+      const angle = (i / 14) * Math.PI * 2;
+      const dist = bubble.radius * (1.2 + Math.random() * 0.8);
+      const p = document.createElement('div');
+      p.className = 'bolha-particle';
+      p.style.left = `${cx}px`; p.style.top = `${cy}px`;
+      p.style.background = color; p.style.boxShadow = `0 0 8px ${color}`;
+      p.style.setProperty('--tx', `${Math.cos(angle) * dist}px`); p.style.setProperty('--ty', `${Math.sin(angle) * dist}px`);
+      bolhaContainer.appendChild(p);
+      setTimeout(() => { p.remove(); }, 850);
+    }
+    el.classList.add('exploding');
+    setTimeout(() => {
+      if (el.parentNode) el.remove();
+      setTimeout(() => { if (activeView !== 'bolha') return; respawnBubble(bubble); }, 900 + Math.random() * 600);
+    }, 600);
+  };
+  const respawnBubble = (bubble) => {
+    const w = bolhaContainer.clientWidth, h = bolhaContainer.clientHeight;
+    if (!w || !h) return;
+    let x = 0, y = 0, ok = false;
+    const r = bubble.radius, padding = 8;
+    for (let attempt = 0; attempt < 80; attempt++) {
+      x = r + padding + Math.random() * Math.max(1, (w - 2 * r - 2 * padding));
+      y = r + padding + Math.random() * Math.max(1, (h - 2 * r - 2 * padding));
+      let collision = false;
+      for (const other of bolhaBubbles) { if (other === bubble || other.exploding) continue; const dx = other.baseX - x, dy = other.baseY - y; const dist = Math.sqrt(dx*dx + dy*dy); if (dist < other.radius + r + 4) { collision = true; break; } }
+      if (!collision) { ok = true; break; }
+    }
+    if (!ok) { x = r + padding + Math.random() * Math.max(1, (w - 2 * r - 2 * padding)); y = r + padding + Math.random() * Math.max(1, (h - 2 * r - 2 * padding)); }
+    bubble.baseX = x; bubble.baseY = y; bubble.phase = Math.random() * Math.PI * 2; bubble.exploding = false;
+    const el = bubble.el;
+    el.classList.remove('exploding'); el.classList.add('respawning');
+    el.style.left = `${x - r}px`; el.style.top = `${y - r}px`; el.style.transform = 'scale(1)';
+    if (!el.parentNode) bolhaContainer.appendChild(el);
+    setTimeout(() => { el.classList.remove('respawning'); }, 1000);
+  };
+  const showTooltip = (bubble, el) => {
+    const coin = bubble.coin, st = getState(coin);
+    const ch = coin.price_change_percentage_24h_in_currency;
+    const chStr = num(ch) ? `${ch >= 0 ? '+' : ''}${ch.toFixed(2)}%` : '—';
+    bolhaTooltip.innerHTML = `<div class="bolha-tooltip-name">${esc(coin.name)} (${esc(coin.symbol)})</div><div class="bolha-tooltip-row"><span>${t('bolha.price')}</span><strong>${fmtPrice(coin.current_price)}</strong></div><div class="bolha-tooltip-row"><span>${t('vol.24h')}</span><strong>${compact.format(coin.total_volume || 0)}</strong></div><div class="bolha-tooltip-row"><span>${t('bolha.change')}</span><strong style="color:${num(ch) && ch >= 0 ? '#3fb950' : '#da3633'}">${chStr}</strong></div><div class="bolha-tooltip-status ${st.cls}">${st.label}</div>`;
+    bolhaTooltip.classList.add('visible');
+    const rect = el.getBoundingClientRect();
+    positionTooltip(rect.left + rect.width / 2, rect.top);
+  };
+  const positionTooltip = (x, y) => { bolhaTooltip.style.left = `${x}px`; bolhaTooltip.style.top = `${y - 10}px`; bolhaTooltip.style.transform = 'translate(-50%, -100%)'; };
+  const hideTooltip = () => { bolhaTooltip.classList.remove('visible'); };
+  let resizeTimer = null;
+  window.addEventListener('resize', () => { if (activeView === 'bolha') { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { renderBolha(); }, 300); } });
+
+  // ================= GALÁXIA =================
+  const galaxiaBodies = [];
+  let galaxiaStartTime = 0;
+  const GLOBAL_SPEED = 0.06;
+
+  const renderGalaxia = () => {
+    if (!galaxiaContainer) return;
+    const coins = coinsCache;
+    if (!coins.length) {
+      const empty = galaxiaContainer.querySelector('.galaxia-empty');
+      if (empty) empty.style.display = 'flex';
+      return;
+    }
+    galaxiaBodies.forEach(b => { if (b.el && b.el.parentNode) b.el.parentNode.removeChild(b.el); });
+    galaxiaBodies.length = 0;
+    galaxiaContainer.querySelectorAll('.galaxia-sun, .galaxia-orbit, .galaxia-body').forEach(el => el.remove());
+    const emptyEl = galaxiaContainer.querySelector('.galaxia-empty');
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    const w = galaxiaContainer.clientWidth, h = galaxiaContainer.clientHeight;
+    if (!w || !h) return;
+
+    const sorted = [...coins].filter(c => num(c.total_volume) && c.total_volume > 0 && num(c.market_cap) && c.market_cap > 0)
+      .sort((a, b) => (b.total_volume * b.market_cap) - (a.total_volume * a.market_cap));
+    if (!sorted.length) { const e = galaxiaContainer.querySelector('.galaxia-empty'); if (e) { e.style.display = 'flex'; e.innerHTML = `<div>${t('error.noCoins')}</div>`; } return; }
+
+    const sunCoin = sorted[0];
+    const sunSize = Math.min(w, h) * 0.16;
+
+    const sunEl = document.createElement('div');
+    sunEl.className = 'galaxia-sun';
+    sunEl.style.width = `${sunSize}px`;
+    sunEl.style.height = `${sunSize}px`;
+    sunEl.setAttribute('data-coin-id', sunCoin.id);
+    sunEl.setAttribute('role', 'button');
+    sunEl.setAttribute('tabindex', '0');
+    sunEl.setAttribute('aria-label', `${sunCoin.name} (Sol da Galáxia)`);
+    sunEl.innerHTML = `
+      <div class="galaxia-sun-core">
+        <img class="galaxia-sun-logo" src="${esc(sunCoin.image)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+      </div>
+      <span class="galaxia-sun-label">☀️ ${esc(sunCoin.symbol.toUpperCase())}</span>
+    `;
+    sunEl.addEventListener('mouseenter', () => showGalaxiaTooltip(sunCoin, sunEl, true));
+    sunEl.addEventListener('mouseleave', () => hideGalaxiaTooltip());
+    sunEl.addEventListener('mousemove', (ev) => {
+      if (galaxiaTooltip.classList.contains('visible')) {
+        galaxiaTooltip.style.left = `${ev.clientX}px`;
+        galaxiaTooltip.style.top = `${ev.clientY - 10}px`;
+        galaxiaTooltip.style.transform = 'translate(-50%, -100%)';
+      }
+    });
+    sunEl.addEventListener('click', (ev) => { ev.stopPropagation(); location.hash = `coin/${encodeURIComponent(sunCoin.id)}`; });
+    sunEl.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); location.hash = `coin/${encodeURIComponent(sunCoin.id)}`; }
+    });
+    galaxiaContainer.appendChild(sunEl);
+
+    const planets = sorted.slice(1);
+    if (!planets.length) { galaxiaStartTime = performance.now(); return; }
+
+    const maxVol = planets[0].total_volume, minVol = planets[planets.length - 1].total_volume;
+    const logMin = Math.log10(Math.max(minVol, 1)), logMax = Math.log10(Math.max(maxVol, 10));
+    const logRange = logMax - logMin || 1;
+
+    const sunRadius = sunSize / 2;
+    const minOrbitRadius = sunRadius + Math.min(w, h) * 0.06;
+    const maxOrbitRadius = Math.min(w, h) * 0.46;
+
+    const orbitCount = Math.min(3, Math.max(1, Math.ceil(planets.length / 3)));
+    const orbitRadii = [];
+    for (let i = 0; i < orbitCount; i++) {
+      const t = (i + 1) / orbitCount;
+      orbitRadii.push(minOrbitRadius + (maxOrbitRadius - minOrbitRadius) * t);
+    }
+
+    const planetsByOrbit = orbitRadii.map(() => []);
+    planets.forEach((p, idx) => {
+      const orbitIdx = idx % orbitCount;
+      planetsByOrbit[orbitIdx].push(p);
+    });
+
+    orbitRadii.forEach((r, i) => {
+      const orbitEl = document.createElement('div');
+      orbitEl.className = 'galaxia-orbit';
+      orbitEl.style.width = `${r * 2}px`;
+      orbitEl.style.height = `${r * 2}px`;
+      const opacity = 0.15 + (i * 0.05);
+      orbitEl.style.borderColor = `rgba(192, 132, 252, ${opacity})`;
+      orbitEl.style.borderWidth = '1px';
+      galaxiaContainer.appendChild(orbitEl);
+    });
+
+    const minR = Math.min(w, h) * 0.022;
+    const maxR = Math.min(w, h) * 0.055;
+
+    planetsByOrbit.forEach((orbitPlanets, orbitIdx) => {
+      const orbitR = orbitRadii[orbitIdx];
+      const count = orbitPlanets.length;
+      if (!count) return;
+      orbitPlanets.forEach((coin, i) => {
+        const phase = (i / count) * Math.PI * 2;
+        const speed = GLOBAL_SPEED / (1 + orbitIdx * 0.35);
+
+        const volLog = Math.log10(Math.max(coin.total_volume, 1));
+        const ratio = (volLog - logMin) / logRange;
+        const radius = minR + (maxR - minR) * Math.max(0, Math.min(1, ratio));
+
+        let bodyClass;
+        if (ratio >= 0.7) bodyClass = 'giant';
+        else if (ratio >= 0.35) bodyClass = 'planet';
+        else bodyClass = 'moon';
+
+        const el = document.createElement('div');
+        el.className = `galaxia-body ${bodyClass}`;
+        el.style.width = `${radius * 2}px`;
+        el.style.height = `${radius * 2}px`;
+        el.setAttribute('data-coin-id', coin.id);
+        el.setAttribute('role', 'button');
+        el.setAttribute('tabindex', '0');
+        el.setAttribute('aria-label', `${coin.name} (${coin.symbol})`);
+        el.innerHTML = `
+          <img class="galaxia-logo" src="${esc(coin.image)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+          <span class="galaxia-label">${esc(coin.symbol.toUpperCase())}</span>
+        `;
+
+        coin._galaxiaRatio = ratio;
+        coin._galaxiaRank = planets.indexOf(coin) + 2;
+
+        el.addEventListener('mouseenter', () => showGalaxiaTooltip(coin, el, false));
+        el.addEventListener('mouseleave', () => hideGalaxiaTooltip());
+        el.addEventListener('mousemove', (ev) => {
+          if (galaxiaTooltip.classList.contains('visible')) {
+            galaxiaTooltip.style.left = `${ev.clientX}px`;
+            galaxiaTooltip.style.top = `${ev.clientY - 10}px`;
+            galaxiaTooltip.style.transform = 'translate(-50%, -100%)';
+          }
+        });
+        el.addEventListener('click', (ev) => { ev.stopPropagation(); location.hash = `coin/${encodeURIComponent(coin.id)}`; });
+        el.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); location.hash = `coin/${encodeURIComponent(coin.id)}`; }
+        });
+
+        galaxiaContainer.appendChild(el);
+        galaxiaBodies.push({ el, coin, radius, orbitR, phase, speed });
+      });
+    });
+
+    galaxiaStartTime = performance.now();
+    animateGalaxia();
+
+    if (lastUpdateGalaxia) {
+      const cached = readCache();
+      const timeStr = cached ? new Date(cached.ts).toLocaleTimeString() : new Date().toLocaleTimeString();
+      lastUpdateGalaxia.textContent = `${t('site.updated')} ${timeStr}`;
+    }
+  };
+
+  const animateGalaxia = () => {
+    if (activeView !== 'galaxia') return;
+    const now = performance.now();
+    const t0 = (now - galaxiaStartTime) / 1000;
+    const cx = galaxiaContainer.clientWidth / 2;
+    const cy = galaxiaContainer.clientHeight / 2;
+    galaxiaBodies.forEach(body => {
+      const angle = body.phase + t0 * body.speed;
+      const x = cx + Math.cos(angle) * body.orbitR;
+      const y = cy + Math.sin(angle) * body.orbitR;
+      body.el.style.left = `${x - body.radius}px`;
+      body.el.style.top = `${y - body.radius}px`;
+    });
+    galaxiaAnimFrame = requestAnimationFrame(animateGalaxia);
+  };
+
+  const showGalaxiaTooltip = (coin, el, isSun) => {
+    const st = getState(coin);
+    const ch = coin.price_change_percentage_24h_in_currency;
+    const chStr = num(ch) ? `${ch >= 0 ? '+' : ''}${ch.toFixed(2)}%` : '—';
+    const ratio = coin._galaxiaRatio || 0;
+    const rankNum = coin._galaxiaRank || 1;
+    let classLabel;
+    if (isSun) classLabel = t('galaxia.tooltip.sun');
+    else {
+      let bodyClass = ratio >= 0.7 ? 'giant' : ratio >= 0.35 ? 'planet' : 'moon';
+      classLabel = t('galaxia.tooltip.' + bodyClass);
+    }
+    galaxiaTooltip.innerHTML = `
+      <div class="galaxia-tooltip-name">${esc(coin.name)} <span class="badge">${esc(coin.symbol)}</span>${isSun ? '<span class="sun-badge">SOL</span>' : ''}</div>
+      <div class="galaxia-tooltip-row"><span>${t('galaxia.tooltip.class')}</span><strong>${classLabel}</strong></div>
+      <div class="galaxia-tooltip-row"><span>${t('galaxia.tooltip.rank')}</span><strong>#${rankNum}</strong></div>
+      <div class="galaxia-tooltip-row"><span>${t('bolha.price')}</span><strong>${fmtPrice(coin.current_price)}</strong></div>
+      <div class="galaxia-tooltip-row"><span>${t('vol.24h')}</span><strong>${compact.format(coin.total_volume || 0)}</strong></div>
+      <div class="galaxia-tooltip-row"><span>${t('label.cap')}</span><strong>${compact.format(coin.market_cap || 0)}</strong></div>
+      <div class="galaxia-tooltip-row"><span>${t('bolha.change')}</span><strong style="color:${num(ch) && ch >= 0 ? '#3fb950' : '#da3633'}">${chStr}</strong></div>
+      <div class="galaxia-tooltip-status ${st.cls}">${st.label}</div>
+    `;
+    galaxiaTooltip.classList.add('visible');
+    const rect = el.getBoundingClientRect();
+    galaxiaTooltip.style.left = `${rect.left + rect.width / 2}px`;
+    galaxiaTooltip.style.top = `${rect.top - 10}px`;
+    galaxiaTooltip.style.transform = 'translate(-50%, -100%)';
+  };
+  const hideGalaxiaTooltip = () => { galaxiaTooltip.classList.remove('visible'); };
+
+  let galaxiaResizeTimer = null;
+  window.addEventListener('resize', () => {
+    if (activeView === 'galaxia') { clearTimeout(galaxiaResizeTimer); galaxiaResizeTimer = setTimeout(() => { renderGalaxia(); }, 300); }
+    if (activeView === 'bolha') { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { renderBolha(); }, 300); }
+  });
+
+  // ================= MODAIS =================
+  const infoModal = $('infoModal'), infoBtn = $('infoBtn'), infoModalClose = $('infoModalClose');
+  const contactModal = $('contactModal'), contactBtn = $('contactBtn'), contactModalClose = $('contactModalClose');
+  const qdayInfoModal = $('qdayInfoModal'), qdayInfoBtn = $('qdayInfoBtn'), qdayInfoModalClose = $('qdayInfoModalClose');
+  const langModal = $('langModal'), langBtn = $('langBtn'), langModalClose = $('langModalClose');
+  const langOptions = $('langOptions');
+  let lastFocusedEl = null;
+  const openModal = (modal) => { lastFocusedEl = document.activeElement; modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden'; const b = modal.querySelector('.modal-close'); if (b) setTimeout(() => b.focus(), 100); };
+  const closeModal = (modal) => { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); document.body.style.overflow = ''; if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') lastFocusedEl.focus(); };
+  infoBtn.addEventListener('click', () => openModal(infoModal));
+  infoModalClose.addEventListener('click', () => closeModal(infoModal));
+  infoModal.addEventListener('click', (e) => { if (e.target === infoModal) closeModal(infoModal); });
+  contactBtn.addEventListener('click', () => openModal(contactModal));
+  contactModalClose.addEventListener('click', () => closeModal(contactModal));
+  contactModal.addEventListener('click', (e) => { if (e.target === contactModal) closeModal(contactModal); });
+  qdayInfoBtn.addEventListener('click', () => openModal(qdayInfoModal));
+  qdayInfoModalClose.addEventListener('click', () => closeModal(qdayInfoModal));
+  qdayInfoModal.addEventListener('click', (e) => { if (e.target === qdayInfoModal) closeModal(qdayInfoModal); });
+  langBtn.addEventListener('click', () => { updateLangSelection(); openModal(langModal); });
+  langModalClose.addEventListener('click', () => closeModal(langModal));
+  langModal.addEventListener('click', (e) => { if (e.target === langModal) closeModal(langModal); });
+  const updateLangSelection = () => { langOptions.querySelectorAll('.lang-option').forEach(btn => { btn.classList.toggle('active', btn.getAttribute('data-lang') === currentLang); }); };
+  langOptions.addEventListener('click', (e) => {
+    const btn = e.target.closest('.lang-option');
+    if (!btn) return;
+    const lang = btn.getAttribute('data-lang');
+    if (!I18N[lang]) return;
+    currentLang = lang;
+    saveLang(lang);
+    applyI18n();
+    renderAll();
+    if (currentCoinId) renderDetail(currentCoinId);
+    updateLangSelection();
+    closeModal(langModal);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (infoModal.classList.contains('open')) closeModal(infoModal);
+    else if (contactModal.classList.contains('open')) closeModal(contactModal);
+    else if (qdayInfoModal.classList.contains('open')) closeModal(qdayInfoModal);
+    else if (langModal.classList.contains('open')) closeModal(langModal);
+  });
+
+  const load = async (force = false) => {
+    if (document.hidden || isLoading) return;
+    if (!force) {
+      const cached = readCache();
+      if (cached) {
+        coinsCache = cached.coins; trendingCache = cached.trending;
+        viewedIdCache = (cached.trending || []).find(id => cached.coins.some(c => c.id === id)) || [...cached.coins].filter(c => num(c.total_volume) && c.total_volume > 0).sort((a, b) => b.total_volume - a.total_volume)[0]?.id;
+        renderAll();
+        lastUpdate.textContent = `${t('site.updated')} ${new Date(cached.ts).toLocaleTimeString()} ${t('site.cache')}`;
+        if (activeView === 'bolha') renderBolha();
+        if (activeView === 'galaxia') renderGalaxia();
+        if (location.hash.startsWith('#coin/') && currentCoinId && cached.coins.some(c => c.id === currentCoinId)) await renderDetail(currentCoinId);
+        return;
+      }
+    }
+    isLoading = true;
+    if (abortController) abortController.abort();
+    abortController = new AbortController();
+    const signal = abortController.signal;
+    try {
+      const [coins, trending] = await Promise.all([getCoins(signal), getTrending(signal)]);
+      if (signal.aborted) return;
+      writeCache(coins, trending);
+      coinsCache = coins; trendingCache = trending;
+      viewedIdCache = trending.find(id => coins.some(c => c.id === id)) || [...coins].filter(c => num(c.total_volume) && c.total_volume > 0).sort((a, b) => b.total_volume - a.total_volume)[0]?.id;
+      renderAll();
+      lastUpdate.textContent = `${t('site.updated')} ${new Date().toLocaleTimeString()}`;
+      if (activeView === 'bolha') renderBolha();
+      if (activeView === 'galaxia') renderGalaxia();
+      if (location.hash.startsWith('#coin/') && currentCoinId && coins.some(c => c.id === currentCoinId)) await renderDetail(currentCoinId);
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      if (!gridEl.querySelector('[data-coin-id]')) gridEl.innerHTML = `<div class="error">${t('error.load')}<br><small>${esc(err.message)}. ${t('error.hint')}</small></div>`;
+    } finally { isLoading = false; }
+  };
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+      if (abortController) { abortController.abort(); abortController = null; }
+      if (bolhaAnimFrame) { cancelAnimationFrame(bolhaAnimFrame); bolhaAnimFrame = null; }
+      if (galaxiaAnimFrame) { cancelAnimationFrame(galaxiaAnimFrame); galaxiaAnimFrame = null; }
+    } else if (!refreshTimer) {
+      load();
+      refreshTimer = setInterval(() => load(true), CONFIG.REFRESH);
+      if (activeView === 'bolha') animateBubbles();
+      if (activeView === 'galaxia') animateGalaxia();
+    }
+  });
+
+  currentLang = loadLang();
+  applyI18n();
+  updateLangSelection();
+  handleRoute();
+  load();
+  refreshTimer = setInterval(() => load(true), CONFIG.REFRESH);
+})();
+</script>
+</body>
+</html>
